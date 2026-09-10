@@ -1,0 +1,7 @@
+dist
+node_modules
+src
+drizzle
+tests
+seed
+docs
