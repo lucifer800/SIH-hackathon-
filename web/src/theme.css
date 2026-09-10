@@ -1,0 +1,43 @@
+/* KisanQ "Sunrise" design tokens — verbatim from the design handoff.
+   Phone-first, Punjabi-first. One visual world, so it commits to a single
+   warm-paper theme and paints every colour explicitly. */
+:root {
+  --green-ink:#1E3B23; --green-deep:#1A3520; --green-mid:#2C5231; --green-light:#3A6438;
+  --leaf:#57783F; --leaf-text:#3F5A2C;
+  --marigold:#FFCA55; --amber-soft:#FFE9C4; --amber-text:#8A5A12; --amber-text-2:#6B4B12; --amber-text-3:#3D2F0C;
+  --terra:#C2521F; --terra-hover:#963C12;
+  --paper:#FFFDF8; --paper-2:#FFF8EC; --paper-3:#FDF3E2; --paper-4:#F4EFE1; --sky:#FFE3B4; --field:#E9EAD2;
+  --muted:#6B7A5C; --muted-2:#8A9680; --muted-3:#5C6B50;
+  --on-dark:#FFF8EC; --on-dark-2:#D6E0CC; --on-dark-3:#BCCBB2; --on-dark-4:#CFDCC6;
+  --chart-neutral:#E6DFC9;
+  --line:rgba(30,59,35,.14); --line-strong:rgba(30,59,35,.26);
+
+  --r-sm:12px; --r-md:20px; --r-lg:26px; --r-xl:32px; --r-pill:999px;
+
+  --shadow-card:0 8px 22px rgba(30,59,35,.07);
+  --shadow-raised:0 18px 44px rgba(140,96,32,.10);
+
+  --font-display:"Fredoka","Manrope",system-ui,sans-serif;
+  --font-ui:"Manrope",system-ui,-apple-system,sans-serif;
+  --font-pa:"Noto Sans Gurmukhi","Manrope",sans-serif;
+  --font-hi:"Noto Sans Devanagari","Manrope",sans-serif;
+
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin:0; padding:0; }
+body {
+  font-family: var(--font-ui);
+  background: var(--green-ink);
+  color: var(--green-ink);
+  overscroll-behavior: none;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input { font-family: inherit; }
+:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; }
+::selection { background: var(--marigold); color: var(--green-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

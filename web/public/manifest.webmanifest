@@ -1,0 +1,14 @@
+{
+  "name": "KisanQ — ਕਿਸਾਨਕਿਊ",
+  "short_name": "KisanQ",
+  "description": "Book your procurement slot, follow your turn, track your payment.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7EF",
+  "theme_color": "#1E3B23",
+  "lang": "pa",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "profile": {
+    "name": "Harpreet Singh",
+    "firstName": "Harpreet",
+    "initials": "HS",
+    "district": "Ludhiana, Punjab",
+    "preferredLanguage": "English (IN)"
+  },
+  "appointments": [
+    {
+      "id": "KS-26-0DFDF082",
+      "centreId": "jagraon",
+      "centre": "Jagraon Procurement Centre",
+      "date": "2026-08-31",
+      "dateLabel": "Monday, 31 August",
+      "day": "31",
+      "month": "Aug",
+      "weekday": "Monday",
+      "slot": "8:30 AM",
+      "slotEnd": "9:30 AM",
+      "crop": "Wheat",
+      "status": "confirmed",
+      "createdAt": "2026-08-27T18:40:52.424Z"
+    },
+    {
+      "id": "KS-26032-0828",
+      "centreId": "jagraon",
+      "centre": "Jagraon Procurement Centre",
+      "date": "2026-08-28",
+      "dateLabel": "Friday, 28 August",
+      "day": "28",
+      "month": "Aug",
+      "weekday": "Friday",
+      "slot": "9:30 AM",
+      "slotEnd": "10:30 AM",
+      "crop": "Wheat",
+      "status": "confirmed",
+      "createdAt": "2026-08-27T05:10:00.000Z"
+    }
+  ],
+  "currentAppointmentId": "KS-26-0DFDF082",
+  "queues": {
+    "KS-26032-0828": {
+      "farmersAhead": 18,
+      "queueSize": 41,
+      "nowServing": 23,
+      "estimatedWaitMinutes": 38,
+      "updatedAt": "2026-08-27T07:15:00.000Z"
+    },
+    "KS-26-0DFDF082": {
+      "farmersAhead": 24,
+      "queueSize": 46,
+      "nowServing": 12,
+      "estimatedWaitMinutes": 50,
+      "updatedAt": "2026-08-27T18:40:52.424Z"
+    }
+  },
+  "procurements": [
+    {
+      "id": "PRC-260820-724",
+      "crop": "Wheat",
+      "variety": "HD-2967",
+      "date": "20 Aug 2026",
+      "quantityQuintals": 23.2,
+      "amount": 48320,
+      "paymentStatus": "credited",
+      "paymentDate": "22 Aug"
+    },
+    {
+      "id": "PRC-260818-441",
+      "crop": "Wheat",
+      "variety": "PBW-725",
+      "date": "18 Aug 2026",
+      "quantityQuintals": 8,
+      "amount": 16480,
+      "paymentStatus": "processing",
+      "paymentDate": "Expected 30 Aug"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "d8d8c534-86e5-47dd-84e4-ffa71d25753e",
+      "message": "Appointment KS-26-0DFDF082 was rescheduled to Monday, 31 August at 8:30 AM.",
+      "read": false,
+      "createdAt": "2026-08-27T18:40:58.697Z"
+    },
+    {
+      "id": "bb46d002-d8f3-4bb5-8b8b-bbb071764ffe",
+      "message": "Appointment KS-26-0DFDF082 is confirmed for Monday, 31 August at 9:30 AM.",
+      "read": false,
+      "createdAt": "2026-08-27T18:40:52.424Z"
+    },
+    {
+      "id": "ntf-payment-processing",
+      "message": "Your payment for PBW-725 has been sent for bank processing.",
+      "read": false,
+      "createdAt": "2026-08-27T07:20:00.000Z"
+    }
+  ]
+}

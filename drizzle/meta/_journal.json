@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788948266122,
+      "tag": "0000_powerful_jane_foster",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788975300356,
+      "tag": "0001_common_husk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788979341048,
+      "tag": "0002_married_mac_gargan",
+      "breakpoints": true
+    }
+  ]
+}

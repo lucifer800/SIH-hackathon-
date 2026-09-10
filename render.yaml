@@ -1,0 +1,87 @@
+# KisanQ on Render — web service + managed Postgres + managed Redis.
+# The blueprint provisions all three; migrations run on every deploy before the
+# new version serves traffic.
+services:
+  - type: web
+    name: kisanq-api
+    runtime: node
+    plan: free
+    region: singapore            # closest to Punjab of Render's regions
+    buildCommand: npm ci && npm run build
+    # preDeploy runs migrations against the new release before it goes live.
+    preDeployCommand: npm run db:migrate
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Kolkata
+      - key: PORT
+        value: "10000"
+      - key: HOST
+        value: 0.0.0.0
+      - key: JWT_SECRET
+        generateValue: true       # Render generates and stores a strong secret
+      - key: CHANNEL_DRIVER
+        value: stub               # flip to msg91 once DLT templates are approved
+      - key: CORS_ORIGINS
+        sync: false               # set to the deployed PWA origin(s)
+      - key: SMS_API_KEY
+        sync: false
+      - key: BHASHINI_API_KEY
+        sync: false
+      - key: DATA_GOV_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kisanq-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kisanq-redis
+          property: connectionString
+
+  - type: worker
+    name: kisanq-worker
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm run worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Kolkata
+      - key: CHANNEL_DRIVER
+        value: stub
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: kisanq-api
+          envVarKey: JWT_SECRET
+      - key: DATA_GOV_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kisanq-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kisanq-redis
+          property: connectionString
+
+  - type: keyvalue
+    name: kisanq-redis
+    plan: free
+    region: singapore
+    ipAllowList: []               # only reachable from within the Render network
+
+databases:
+  - name: kisanq-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
