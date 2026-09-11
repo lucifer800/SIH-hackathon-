@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Dashboard } from "../api";
 import { useI18n } from "../i18n/context";
+import { fmtDate } from "../i18n/format";
 import { StatusBar, ScreenBody, TabBar, LangChips, useToast, money } from "../ui";
 
 export function Home() {
@@ -66,8 +67,11 @@ export function Home() {
               <button type="button" onClick={() => nav("/records")} className="card" style={{ padding: 18, textAlign: "left" }}>
                 <div className="eyebrow">{t("payment")}</div>
                 <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{money.format(d.payment?.amount ?? d.procurementValue)}</div>
-                <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: d.payment?.paymentStatus === "failed" ? "var(--terra)" : "var(--leaf)" }}>
-                  {d.payment ? d.payment.paymentLabel : t("creditedOn")}
+                <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: d.payment?.paymentStatus === "failed" ? "var(--terra)" : "var(--leaf)", fontFamily: font }}>
+                  {!d.payment ? t("creditedOn")
+                    : d.payment.paymentStatus === "failed" ? t("heldAction")
+                    : d.payment.paymentStatus === "credited" ? t("creditedOn") + (d.payment.paymentDate ? " " + fmtDate(d.payment.paymentDate, lang) : "")
+                    : t("expectedOn") + (d.payment.paymentDate ? " " + fmtDate(d.payment.paymentDate, lang) : "")}
                 </div>
               </button>
               <div className="card" style={{ padding: 18 }}>

@@ -136,7 +136,11 @@ describe("no-show sweeper", () => {
 
   it("does not sweep a booking whose window is still open", async () => {
     const fid = await farmer(11);
-    await book({ userId: fid, slotId: slotToday, qtl: 20, trolleys: 1 }); // today's window not yet past
+    // Create a slot that ends far in the future so it's always "still open"
+    const tomorrow = new Date(Date.now() + 24 * 3600_000).toISOString().slice(0, 10);
+    const [dayF] = await db.insert(t.centreDays).values({ centreId, date: tomorrow, capacityQtl: 1000, capacityTrolleys: 40, poolsReleasedAt: new Date() }).returning();
+    const [futureSlot] = await db.insert(t.slots).values({ centreDayId: dayF!.id, windowStart: new Date(Date.now() + 3600_000), windowEnd: new Date(Date.now() + 7200_000), capacityTrolleys: 40, capacityQtl: 1000 }).returning();
+    await book({ userId: fid, slotId: futureSlot!.id, qtl: 20, trolleys: 1 });
     const { swept } = await sweepNoShows();
     const [u] = await db.select().from(t.users).where(eq(t.users.id, fid));
     expect(u!.noShowCount).toBe(0);

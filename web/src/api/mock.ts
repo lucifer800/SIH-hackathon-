@@ -9,9 +9,20 @@
 import type {
   Dashboard, Centre, Slot, Procurement, Notification, Rates, Queue, Appointment, AssistAnswer,
 } from "./types";
-import type { Lang } from "../i18n/strings";
+import { localeOf, type Lang } from "../i18n/strings";
 
-const KEY = "kq-mock-state-v2";
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+/** A booking-confirmation SMS body, authored in all three languages. */
+function bookingBody(centre: string, dateIso: string, slot: string, otp: string) {
+  const d = (lang: Lang) => new Intl.DateTimeFormat(localeOf(lang), { day: "numeric", month: "long" }).format(new Date(dateIso + "T12:00:00"));
+  return {
+    pa: `ਪਰਚੀ ਪੱਕੀ — ${centre}, ${d("pa")}, ${slot}. ਗੇਟ OTP ${otp}.`,
+    hi: `पर्ची पक्की — ${centre}, ${d("hi")}, ${slot}. गेट OTP ${otp}.`,
+    en: `Slot confirmed — ${centre}, ${d("en")}, ${slot}. Gate OTP ${otp}.`,
+  };
+}
+
+const KEY = "kq-mock-state-v3";
 const OTP_KEY = "kq-mock-otp";
 
 const CENTRES: Centre[] = [
@@ -77,13 +88,29 @@ function seed(): MockState {
       estimatedWaitMinutes: 38, updatedAt: new Date().toISOString(),
     },
     procurements: [
-      { id: "PRC-260820-724", crop: "Wheat", variety: "HD-2967", date: "20 Aug 2026", quantityQuintals: 23.2, amount: 48320, paymentStatus: "credited", paymentLabel: "Credited 22 Aug" },
-      { id: "PRC-260818-441", crop: "Wheat", variety: "PBW-725", date: "18 Aug 2026", quantityQuintals: 8, amount: 16480, paymentStatus: "failed", paymentLabel: "Held — action needed", failureReason: "Account not linked to Aadhaar. Complete KYC at your bank branch." },
+      { id: "PRC-260820-724", crop: "Wheat", variety: "HD-2967", date: "2026-08-20", quantityQuintals: 23.2, amount: 48320, paymentStatus: "credited", paymentDate: "2026-08-22" },
+      { id: "PRC-260818-441", crop: "Wheat", variety: "PBW-725", date: "2026-08-18", quantityQuintals: 8, amount: 16480, paymentStatus: "failed", failureReason: {
+        pa: "ਖਾਤਾ ਆਧਾਰ ਨਾਲ ਲਿੰਕ ਨਹੀਂ। ਸ਼ਾਖਾ ਵਿੱਚ KYC ਕਰਾਓ।",
+        hi: "खाता आधार से लिंक नहीं। शाखा में KYC कराएँ।",
+        en: "Account not linked to Aadhaar. Complete KYC at your bank branch.",
+      } },
     ],
     notifications: [
-      { id: "n1", category: "PAYMENT", channel: "SMS", body: "भुगतान रुका — खाते से आधार लिंक नहीं. शाखा में KYC कराएँ. (PBW-725)", createdLabel: "2h ago · SMS", read: false },
-      { id: "n2", category: "BOOKING", channel: "SMS", body: "ਪਰਚੀ ਪੱਕੀ — ਜਗਰਾਉਂ ਕੇਂਦਰ, 10 ਸਤੰਬਰ, 9:30–11:30. ਗੇਟ OTP 4417.", createdLabel: "Yesterday · SMS", read: true },
-      { id: "n3", category: "QUEUE", channel: "IVR", body: "ਤੁਹਾਡੀ ਵਾਰੀ ਨੇੜੇ ਹੈ — 5 ਗੱਡੀਆਂ ਬਾਕੀ. ਲੇਨ 3 ’ਤੇ ਪਹੁੰਚੋ.", createdLabel: "Yesterday · Missed-call", read: true },
+      { id: "n1", category: "PAYMENT", channel: "SMS", read: false, createdAt: hoursAgo(2), body: {
+        pa: "ਭੁਗਤਾਨ ਰੁਕਿਆ — ਖਾਤਾ ਆਧਾਰ ਨਾਲ ਲਿੰਕ ਨਹੀਂ। ਸ਼ਾਖਾ ਵਿੱਚ KYC ਕਰਾਓ। (PBW-725)",
+        hi: "भुगतान रुका — खाते से आधार लिंक नहीं। शाखा में KYC कराएँ। (PBW-725)",
+        en: "Payment held — account not linked to Aadhaar. Complete KYC at your bank branch. (PBW-725)",
+      } },
+      { id: "n2", category: "BOOKING", channel: "SMS", read: true, createdAt: hoursAgo(20), body: {
+        pa: "ਪਰਚੀ ਪੱਕੀ — ਜਗਰਾਉਂ ਕੇਂਦਰ, 10 ਸਤੰਬਰ, 9:30–11:30. ਗੇਟ OTP 4417.",
+        hi: "पर्ची पक्की — जगराओं केंद्र, 10 सितंबर, 9:30–11:30. गेट OTP 4417.",
+        en: "Slot confirmed — Jagraon Centre, 10 September, 9:30–11:30. Gate OTP 4417.",
+      } },
+      { id: "n3", category: "QUEUE", channel: "IVR", read: true, createdAt: hoursAgo(22), body: {
+        pa: "ਤੁਹਾਡੀ ਵਾਰੀ ਨੇੜੇ ਹੈ — 5 ਗੱਡੀਆਂ ਬਾਕੀ। ਲੇਨ 3 ’ਤੇ ਪਹੁੰਚੋ।",
+        hi: "आपकी बारी नज़दीक है — 5 गाड़ियाँ शेष। लेन 3 पर पहुँचें।",
+        en: "Your turn is near — 5 vehicles left. Please reach lane 3.",
+      } },
     ],
     entitlementQtl: 62, usedQtl: 31.2,
     slotBooked: {},
@@ -107,7 +134,11 @@ const RATES: Record<string, Rates> = {
     nearby: [
       { mandi: "Khanna", price: 2440 }, { mandi: "Jagraon", price: 2425 }, { mandi: "Raikot", price: 2415 },
     ],
-    advice: "Khanna is ₹15 higher, but 34 km away. At today's rate the trip costs more than it earns for under 20 quintals.",
+    advice: {
+      pa: "ਖੰਨਾ ₹15 ਵੱਧ ਹੈ, ਪਰ 34 ਕਿਮੀ ਦੂਰ। ਅੱਜ ਦੇ ਭਾਅ ’ਤੇ 20 ਕੁਇੰਟਲ ਤੋਂ ਘੱਟ ਲਈ ਸਫ਼ਰ ਕਮਾਈ ਤੋਂ ਵੱਧ ਖ਼ਰਚ ਕਰਾਉਂਦਾ ਹੈ।",
+      hi: "खन्ना ₹15 ऊँचा है, पर 34 किमी दूर। आज के भाव पर 20 क्विंटल से कम के लिए सफ़र कमाई से ज़्यादा खर्च कराता है।",
+      en: "Khanna is ₹15 higher, but 34 km away. At today's rate the trip costs more than it earns for under 20 quintals.",
+    },
   },
   Paddy: {
     crop: "Paddy", today: 2300, delta: 0,
@@ -116,7 +147,11 @@ const RATES: Record<string, Rates> = {
       { day: "T", value: 2295 }, { day: "F", value: 2300 }, { day: "S", value: 2300 }, { day: "S", value: 2300 },
     ],
     nearby: [{ mandi: "Khanna", price: 2300 }, { mandi: "Jagraon", price: 2300 }, { mandi: "Raikot", price: 2290 }],
-    advice: "Paddy is at MSP across every nearby mandi. Book at the closest centre — there is nothing to gain by travelling.",
+    advice: {
+      pa: "ਝੋਨਾ ਹਰ ਨੇੜਲੀ ਮੰਡੀ ਵਿੱਚ MSP ’ਤੇ ਹੈ। ਸਭ ਤੋਂ ਨੇੜੇ ਕੇਂਦਰ ’ਤੇ ਬੁਕ ਕਰੋ — ਸਫ਼ਰ ਤੋਂ ਕੁਝ ਨਹੀਂ ਮਿਲੇਗਾ।",
+      hi: "धान हर नज़दीकी मंडी में MSP पर है। सबसे पास के केंद्र पर बुक करें — सफ़र से कुछ नहीं मिलेगा।",
+      en: "Paddy is at MSP across every nearby mandi. Book at the closest centre — there is nothing to gain by travelling.",
+    },
   },
   Maize: {
     crop: "Maize", today: 2090, delta: -12,
@@ -125,7 +160,11 @@ const RATES: Record<string, Rates> = {
       { day: "T", value: 2105 }, { day: "F", value: 2095 }, { day: "S", value: 2100 }, { day: "S", value: 2090 },
     ],
     nearby: [{ mandi: "Khanna", price: 2095 }, { mandi: "Jagraon", price: 2090 }, { mandi: "Raikot", price: 2085 }],
-    advice: "Maize has eased ₹12 this week. If you can store safely, holding a few days may recover the dip.",
+    advice: {
+      pa: "ਮੱਕੀ ਇਸ ਹਫ਼ਤੇ ₹12 ਨਰਮ ਹੋਈ। ਜੇ ਸੁਰੱਖਿਅਤ ਭੰਡਾਰ ਹੋਵੇ, ਕੁਝ ਦਿਨ ਰੋਕਣ ਨਾਲ ਗਿਰਾਵਟ ਸੁਧਰ ਸਕਦੀ ਹੈ।",
+      hi: "मक्का इस हफ़्ते ₹12 नरम हुई। अगर सुरक्षित भंडारण हो, कुछ दिन रोकने से गिरावट सुधर सकती है।",
+      en: "Maize has eased ₹12 this week. If you can store safely, holding a few days may recover the dip.",
+    },
   },
 };
 
@@ -203,7 +242,7 @@ export const mock = {
     };
     s.appointment = appt;
     s.queue = { seq: 47, nowServing: 12, farmersAhead: 24, queueSize: 47, lane: null, estimatedWaitMinutes: 50, updatedAt: new Date().toISOString() };
-    s.notifications.unshift({ id: "n" + Date.now(), category: "BOOKING", channel: "SMS", body: `ਪਰਚੀ ਪੱਕੀ — ${centre.name}, ${appt.dateLabel}, ${appt.slot}. ਗੇਟ OTP ${appt.gateOtp}.`, createdLabel: "Just now · SMS", read: false });
+    s.notifications.unshift({ id: "n" + Date.now(), category: "BOOKING", channel: "SMS", read: false, createdAt: new Date().toISOString(), body: bookingBody(centre.name, input.date, appt.slot, appt.gateOtp) });
     save(s);
     return appt;
   },
@@ -222,7 +261,11 @@ export const mock = {
   async notifyWhenNear(): Promise<{ ok: true }> {
     await delay();
     const s = load();
-    s.notifications.unshift({ id: "n" + Date.now(), category: "QUEUE", channel: "IVR", body: "ਠੀਕ ਹੈ — 5 ਗੱਡੀਆਂ ਬਾਕੀ ਰਹਿਣ ’ਤੇ ਤੁਹਾਨੂੰ ਕਾਲ ਆਵੇਗੀ.", createdLabel: "Just now · IVR", read: false });
+    s.notifications.unshift({ id: "n" + Date.now(), category: "QUEUE", channel: "IVR", read: false, createdAt: new Date().toISOString(), body: {
+      pa: "ਠੀਕ ਹੈ — 5 ਗੱਡੀਆਂ ਬਾਕੀ ਰਹਿਣ ’ਤੇ ਤੁਹਾਨੂੰ ਕਾਲ ਆਵੇਗੀ।",
+      hi: "ठीक है — 5 गाड़ियाँ शेष रहने पर आपको कॉल आएगी।",
+      en: "Done — we'll call you when 5 vehicles remain.",
+    } });
     save(s);
     return { ok: true };
   },

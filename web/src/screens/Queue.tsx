@@ -17,10 +17,11 @@ export function Queue() {
   const nav = useNavigate();
   const toast = useToast();
   const [q, setQ] = useState<Q | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const timer = useRef<number>();
 
   useEffect(() => {
-    api.dashboard("en").then((d) => setQ(d.queue));
+    api.dashboard("en").then((d) => { setQ(d.queue); setLoaded(true); });
     // ambient live movement — stands in for the SSE push
     timer.current = window.setInterval(async () => {
       const next = await api.advanceQueue();
@@ -31,14 +32,29 @@ export function Queue() {
 
   async function refresh() {
     const next = await api.advanceQueue();
-    if (next) { setQ({ ...next }); toast("One tractor cleared the counter."); }
+    if (next) { setQ({ ...next }); toast(t("clearedCounter")); }
   }
   async function ring() {
     await api.notifyWhenNear();
     toast(t("ringHint"));
   }
 
-  if (!q) return <><StatusBar right={t("liveQueue")} /><ScreenBody><div style={{ height: 200 }} /></ScreenBody><TabBar /></>;
+  if (!q) return (
+    <>
+      <StatusBar right={t("liveQueue")} />
+      <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
+        <h2 className="h-display" style={{ margin: "6px 0 16px", fontSize: 31 }}>{t("liveQueue")}</h2>
+        {loaded ? (
+          <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "var(--amber-soft)", fontSize: 15.5, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font, textAlign: "center" }}>
+            {t("notInQueue")}
+          </div>
+        ) : (
+          <div style={{ height: 200 }} />
+        )}
+      </ScreenBody>
+      <TabBar />
+    </>
+  );
 
   const total = q.queueSize;
   const served = q.nowServing;
@@ -49,9 +65,9 @@ export function Queue() {
       <StatusBar right="LIVE" />
       <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
         <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <div className="eyebrow" style={{ marginTop: 6 }}>Jagraon · Counter 7</div>
-          <div className="h-display" style={{ marginTop: 10, fontSize: 38, lineHeight: 1.05 }}>
-            <span style={{ color: "var(--terra)" }}>{q.farmersAhead}</span> tractors<br />ahead of you
+          <div className="eyebrow" style={{ marginTop: 6, fontFamily: font }}>Jagraon · {t("counter")} 7</div>
+          <div className="h-display" style={{ marginTop: 10, fontSize: 38, lineHeight: 1.05, fontFamily: font }}>
+            <span style={{ color: "var(--terra)", fontFamily: "var(--font-display)" }}>{q.farmersAhead}</span> {t("tractorsAhead")}
           </div>
           <div style={{ marginTop: 8, fontSize: 16, fontWeight: 700, color: "var(--muted)", fontFamily: font }}>
             {t("estWait")} {q.estimatedWaitMinutes} {t("minutes")} · {t("youAreHere")} #{String(mySeq).padStart(3, "0")}

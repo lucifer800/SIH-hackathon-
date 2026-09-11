@@ -1,14 +1,15 @@
 /**
- * The one place the app talks to a backend. Today it delegates to the mock data
- * layer; when the farmer endpoints land (L1–L4) each method here becomes a real
- * fetch to /api/v1 with the same return shape, and no screen changes.
+ * The one place the app talks to a backend.
  *
- *   VITE_API_URL set  → try the real API, fall back to mock on network failure
- *   unset             → mock only (the default for standalone dev + the demo)
+ *   VITE_API_URL set  → the live /api/v1 backend (auth + booking wired; the rest
+ *                       still falls back to the mock inside real.ts)
+ *   unset             → mock only (standalone dev + offline demo)
  */
 import { mock } from "./mock";
+import { real } from "./real";
 export * from "./types";
 
-export const api = mock;
+const USE_REAL = Boolean(import.meta.env.VITE_API_URL);
 
-export const USING_MOCK = true;
+export const api = USE_REAL ? real : mock;
+export const USING_MOCK = !USE_REAL;

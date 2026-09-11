@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { useI18n } from "./i18n/context";
 
@@ -16,10 +16,23 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
   );
 }
 
+/** Live IST clock — real Delhi time, 24-hour, refreshed each minute. */
+function useIstClock() {
+  const fmt = () =>
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+  const [time, setTime] = useState(fmt);
+  useEffect(() => {
+    const id = setInterval(() => setTime(fmt()), 15_000); // catches the minute rollover
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
 export function StatusBar({ right }: { right?: string }) {
+  const time = useIstClock();
   return (
     <div className="statusbar">
-      <span>6:14</span>
+      <span>{time}</span>
       <span className="statusbar-right">
         {right ? <span className="statusbar-live">{right}</span> : null}
         <span className="dot" /><span className="dot" />

@@ -6,7 +6,7 @@ import { StatusBar, ScreenBody, TabBar } from "../ui";
 const CROPS = ["Wheat", "Paddy", "Maize"];
 
 export function Rates() {
-  const { t, font } = useI18n();
+  const { t, lang, font } = useI18n();
   const [crop, setCrop] = useState("Wheat");
   const [r, setR] = useState<R | null>(null);
 
@@ -31,7 +31,7 @@ export function Rates() {
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
                 <div className="h-display" style={{ fontWeight: 700, fontSize: 56, lineHeight: .95 }}>₹{r.today.toLocaleString("en-IN")}</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: r.delta >= 0 ? "var(--leaf)" : "var(--terra)" }}>
-                  {r.delta >= 0 ? "▲" : "▼"} ₹{Math.abs(r.delta)} this week
+                  {r.delta >= 0 ? "▲" : "▼"} ₹{Math.abs(r.delta)} {t("thisWeek")}
                 </div>
               </div>
               <div style={{ marginTop: 4, fontSize: 14.5, fontWeight: 700, color: "var(--muted)", fontFamily: font }}>MSP {t("perQuintal")}</div>
@@ -49,7 +49,7 @@ export function Rates() {
               </div>
 
               <div style={{ marginTop: "auto", padding: "16px 20px", borderRadius: 24, background: "var(--amber-soft)", fontSize: 14, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font }}>
-                {r.advice}
+                {r.advice[lang]}
               </div>
             </>
           ) : null}

@@ -1,5 +1,5 @@
 /** Mirrors the KisanQ API contract (src/db/schema.ts on the server). */
-import type { Lang } from "../i18n/strings";
+import type { Lang, L10n } from "../i18n/strings";
 
 export interface User {
   id: string; mobile: string; name: string; language: Lang; role: string;
@@ -28,16 +28,19 @@ export interface Slot {
 export interface Procurement {
   id: string; crop: string; variety: string; date: string; quantityQuintals: number;
   amount: number; paymentStatus: "credited" | "processing" | "failed";
-  paymentLabel: string; failureReason?: string;
+  /** ISO date the status refers to (credited on / expected by); UI builds the label per language. */
+  paymentDate?: string; failureReason?: L10n;
 }
 export interface Notification {
-  id: string; category: string; channel: string; body: string;
-  createdLabel: string; read: boolean;
+  /** A code from the mock (PAYMENT/BOOKING/QUEUE) or an already-localized label from the backend. */
+  id: string; category: string; channel: string;
+  /** Mock authors all three languages (follows the toggle); a real sent SMS carries its one language in all three slots. */
+  body: L10n; createdAt: string; read: boolean;
 }
 export interface RatePoint { day: string; value: number; }
 export interface Rates {
   crop: string; today: number; delta: number; trend: RatePoint[];
-  nearby: { mandi: string; price: number }[]; advice: string;
+  nearby: { mandi: string; price: number }[]; advice: L10n;
 }
 export interface Dashboard {
   user: User; holding: Holding; appointment: Appointment | null; queue: Queue | null;
