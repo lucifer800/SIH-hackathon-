@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useI18n } from "../i18n/context";
@@ -33,6 +33,18 @@ export function Login() {
     if (d === "speak") return toast(t("speak") + " — " + t("qTurn"));
     setCode((c) => (c.length < 4 ? c + d : c));
   }
+
+  // Let the user type the OTP from their physical keyboard too
+  useEffect(() => {
+    if (step !== "otp") return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key >= "0" && e.key <= "9") { e.preventDefault(); setCode((c) => (c.length < 4 ? c + e.key : c)); }
+      else if (e.key === "Backspace" || e.key === "Delete") { e.preventDefault(); setCode((c) => c.slice(0, -1)); }
+      else if (e.key === "Enter") { e.preventDefault(); document.querySelector<HTMLButtonElement>(".cta")?.click(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [step]);
 
   async function verify() {
     if (code.length < 4) return toast(t("enterCode"));
