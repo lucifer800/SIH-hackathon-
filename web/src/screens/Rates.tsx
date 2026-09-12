@@ -3,30 +3,51 @@ import { api, type Rates as R } from "../api";
 import { useI18n } from "../i18n/context";
 import { StatusBar, ScreenBody, TabBar } from "../ui";
 
-const CROPS = ["Wheat", "Paddy", "Maize"];
+const CROP_KEYS = ["Wheat", "Paddy", "Maize"] as const;
+const CROP_I18N: Record<string, string> = { Wheat: "cropWheat", Paddy: "cropPaddy", Maize: "cropMaize" };
 
 export function Rates() {
   const { t, lang, font } = useI18n();
-  const [crop, setCrop] = useState("Wheat");
+  const [crop, setCrop] = useState<string>("Wheat");
   const [r, setR] = useState<R | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => { api.rates(crop).then(setR); }, [crop]);
+  function load(c: string) {
+    setLoading(true); setError(false);
+    api.rates(c)
+      .then((data) => { setR(data); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }
+
+  useEffect(() => { load(crop); }, [crop]);
 
   return (
     <>
-      <StatusBar right="RATES" />
+      <StatusBar right={t("cropRates")} />
       <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
         <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            {CROPS.map((c) => (
+            {CROP_KEYS.map((c) => (
               <button key={c} type="button" onClick={() => setCrop(c)}
-                style={{ flex: 1, minHeight: 54, borderRadius: 20, border: 0, background: c === crop ? "var(--green-ink)" : "rgba(30,59,35,.08)", color: c === crop ? "var(--on-dark)" : "var(--muted)", fontSize: 14.5, fontWeight: 800 }}>
-                {c}
+                style={{ flex: 1, minHeight: 54, borderRadius: 20, border: 0, background: c === crop ? "var(--green-ink)" : "rgba(30,59,35,.08)", color: c === crop ? "var(--on-dark)" : "var(--muted)", fontSize: 14.5, fontWeight: 800, fontFamily: font }}>
+                {t(CROP_I18N[c])}
               </button>
             ))}
           </div>
 
-          {r ? (
+          {error ? (
+            <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--terra)" }}>{t("errorRetry")}</div>
+              <button type="button" onClick={() => load(crop)} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
+            </div>
+          ) : loading ? (
+            <div style={{ display: "grid", gap: 14, marginTop: 24 }}>
+              <div style={{ height: 70, borderRadius: 22, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 148, borderRadius: 26, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 60, borderRadius: 22, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+            </div>
+          ) : r ? (
             <>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
                 <div className="h-display" style={{ fontWeight: 700, fontSize: 56, lineHeight: .95 }}>₹{r.today.toLocaleString("en-IN")}</div>

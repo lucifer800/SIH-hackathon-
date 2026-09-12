@@ -4,8 +4,6 @@ import { useI18n } from "../i18n/context";
 import { fmtRelative } from "../i18n/format";
 import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
-// A sent SMS keeps its own language, so pick the font from the text's script,
-// not from the UI toggle — a Punjabi alert stays legible while the app is in English.
 const scriptFont = (s: string) => (/[਀-੿]/.test(s) ? "var(--font-pa)" : /[ऀ-ॿ]/.test(s) ? "var(--font-hi)" : "var(--font-ui)");
 const scriptLocale = (s: string) => (/[਀-੿]/.test(s) ? "pa-IN" : /[ऀ-ॿ]/.test(s) ? "hi-IN" : "en-IN");
 
@@ -13,10 +11,18 @@ export function Alerts() {
   const { t, lang, font } = useI18n();
   const toast = useToast();
   const [items, setItems] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => { api.notifications().then(setItems); }, []);
+  function load() {
+    setError(false); setLoading(true);
+    api.notifications()
+      .then((n) => { setItems(n); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }
 
-  // Mock categories are codes (t() resolves them); backend categories arrive already localized.
+  useEffect(() => { load(); }, []);
+
   const catText = (c: string) => { const r = t("cat" + c); return r === "cat" + c ? c : r; };
 
   async function markRead(id: string) {
@@ -35,7 +41,7 @@ export function Alerts() {
 
   return (
     <>
-      <StatusBar right="ALERTS" />
+      <StatusBar right={t("alerts")} />
       <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
         <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <h2 className="h-display" style={{ margin: "6px 0 6px", fontSize: 31 }}>{t("alerts")}</h2>
@@ -43,26 +49,43 @@ export function Alerts() {
             {t("alertsSaved")}
           </p>
 
-          <div style={{ display: "grid", gap: 12 }}>
-            {items.map((n) => {
-              const dark = !n.read;
-              return (
-                <button key={n.id} type="button" onClick={() => markRead(n.id)}
-                  style={{ textAlign: "left", padding: "18px 20px", borderRadius: 26, background: dark ? "var(--green-ink)" : "#fff", color: dark ? "var(--on-dark)" : "var(--green-ink)", boxShadow: dark ? "none" : "0 8px 20px rgba(30,59,35,.06)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: ".08em", color: dark ? "var(--marigold)" : "var(--muted-2)", fontFamily: scriptFont(catText(n.category)) }}>{catText(n.category)}</span>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? "var(--on-dark-3)" : "var(--muted-2)", fontFamily: font }}>{fmtRelative(n.createdAt, lang)} · {n.channel}</span>
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 15.5, fontWeight: 700, lineHeight: 1.5, fontFamily: scriptFont(n.body[lang]) }}>
-                    {n.body[lang]}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {error ? (
+            <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--terra)" }}>{t("errorRetry")}</div>
+              <button type="button" onClick={load} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
+            </div>
+          ) : loading ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} style={{ height: 80, borderRadius: 26, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "var(--amber-soft)", fontSize: 15.5, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font, textAlign: "center" }}>
+              {t("noAlerts")}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {items.map((n) => {
+                const dark = !n.read;
+                return (
+                  <button key={n.id} type="button" onClick={() => markRead(n.id)}
+                    style={{ textAlign: "left", padding: "18px 20px", borderRadius: 26, background: dark ? "var(--green-ink)" : "#fff", color: dark ? "var(--on-dark)" : "var(--green-ink)", boxShadow: dark ? "none" : "0 8px 20px rgba(30,59,35,.06)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: ".08em", color: dark ? "var(--marigold)" : "var(--muted-2)", fontFamily: scriptFont(catText(n.category)) }}>{catText(n.category)}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? "var(--on-dark-3)" : "var(--muted-2)", fontFamily: font }}>{fmtRelative(n.createdAt, lang)} · {n.channel}</span>
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 15.5, fontWeight: 700, lineHeight: 1.5, fontFamily: scriptFont(n.body[lang]) }}>
+                      {n.body[lang]}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <button type="button" onClick={readAloud} style={{ marginTop: "auto", minHeight: 64, border: "2.5px solid var(--leaf)", borderRadius: 999, background: "transparent", color: "var(--leaf-text)", fontSize: 16, fontWeight: 800, fontFamily: font }}>
-            🔊 {t("readToMe")}
+            {t("readToMe")}
           </button>
         </div>
       </ScreenBody>

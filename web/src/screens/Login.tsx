@@ -20,7 +20,7 @@ export function Login() {
   const isValidMobile = digits.length === 10; // Strictly 10 digits, no more, no less
 
   async function sendCode() {
-    if (!isValidMobile) return toast("Must be exactly 10 digits");
+    if (!isValidMobile) return toast(t("mustBe10"));
     setBusy(true);
     try {
       const res = await api.requestOtp("+91" + digits);

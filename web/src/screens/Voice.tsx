@@ -18,12 +18,16 @@ export function Voice() {
 
   async function ask(text: string) {
     setHeard(text);
-    const res = await api.assist(text, lang);
-    setAnswer(res);
-    if ("speechSynthesis" in window) {
-      const u = new SpeechSynthesisUtterance(res.answer);
-      u.lang = lang === "pa" ? "pa-IN" : lang === "hi" ? "hi-IN" : "en-IN";
-      window.speechSynthesis.speak(u);
+    try {
+      const res = await api.assist(text, lang);
+      setAnswer(res);
+      if ("speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance(res.answer);
+        u.lang = lang === "pa" ? "pa-IN" : lang === "hi" ? "hi-IN" : "en-IN";
+        window.speechSynthesis.speak(u);
+      }
+    } catch {
+      setAnswer({ intent: "unknown" as any, answer: t("errorRetry"), audioUrl: null });
     }
   }
 

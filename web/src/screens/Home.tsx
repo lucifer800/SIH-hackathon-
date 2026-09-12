@@ -10,8 +10,14 @@ export function Home() {
   const nav = useNavigate();
   const toast = useToast();
   const [d, setD] = useState<Dashboard | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => { api.dashboard(lang).then(setD); }, [lang]);
+  function load() {
+    setError(false);
+    api.dashboard(lang).then(setD).catch(() => setError(true));
+  }
+
+  useEffect(() => { load(); }, [lang]);
 
   async function refresh() {
     const q = await api.advanceQueue();
@@ -26,7 +32,12 @@ export function Home() {
     <>
       <StatusBar />
       <ScreenBody>
-        {!d ? <Skeleton /> : (
+        {error ? (
+          <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--terra)" }}>{t("errorRetry")}</div>
+            <button type="button" onClick={load} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
+          </div>
+        ) : !d ? <Skeleton /> : (
           <div className="fade-in">
             {/* greeting */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -102,7 +113,7 @@ export function Home() {
 
             {/* logout */}
             <button type="button" onClick={() => { api.logout(); nav("/login", { replace: true }); }} style={{ marginTop: 16, fontSize: 14, fontWeight: 700, color: "var(--terra)", textAlign: "center", width: "100%", padding: "10px 0" }}>
-              Sign out
+              {t("logout")}
             </button>
           </div>
         )}
