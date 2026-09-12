@@ -99,6 +99,11 @@ export function Home() {
               <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--leaf)", animation: "sk-ring 2s ease-out infinite" }} />
               {t("askByVoice")}
             </button>
+
+            {/* logout */}
+            <button type="button" onClick={() => { api.logout(); nav("/login", { replace: true }); }} style={{ marginTop: 16, fontSize: 14, fontWeight: 700, color: "var(--terra)", textAlign: "center", width: "100%", padding: "10px 0" }}>
+              Sign out
+            </button>
           </div>
         )}
       </ScreenBody>

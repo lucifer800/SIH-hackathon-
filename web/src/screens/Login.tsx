@@ -17,9 +17,10 @@ export function Login() {
   const [busy, setBusy] = useState(false);
 
   const digits = mobile.replace(/\D/g, "").slice(0, 10);
+  const isValidMobile = digits.length === 10; // Strictly 10 digits, no more, no less
 
   async function sendCode() {
-    if (digits.length !== 10) return toast(t("mobilePlaceholder"));
+    if (!isValidMobile) return toast("Must be exactly 10 digits");
     setBusy(true);
     try {
       const res = await api.requestOtp("+91" + digits);
@@ -81,7 +82,7 @@ export function Login() {
               </div>
               <div style={{ marginTop: "auto", display: "grid", gap: 16, paddingTop: 24 }}>
                 <LangChips />
-                <button type="button" className="cta" disabled={busy} onClick={sendCode}>
+                <button type="button" className="cta" disabled={busy || !isValidMobile} onClick={sendCode}>
                   {busy ? <span className="spinner" /> : t("sendCode")}
                 </button>
               </div>
