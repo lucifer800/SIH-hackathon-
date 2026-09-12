@@ -1,10 +1,11 @@
 /**
  * KisanQ admin console. Renders full-screen (outside the farmer PhoneFrame).
  * Mobile + OTP sign-in like the rest of KisanQ, then one page per entity group
- * with the management actions wired to the pure mutations in ./data.
+ * with the management actions wired to the real backend via ./api.ts.
  */
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { adminStore, mutate, overview, type EventKind } from "./data";
+import { adminApi } from "./api";
 import { useAdmin, Card, Stat, Badge, Table, Btn, BtnRow, money, type Col } from "./ui";
 import "./admin.css";
 
@@ -12,12 +13,42 @@ import "./admin.css";
 const ToastCtx = createContext<(m: string) => void>(() => {});
 const useToast = () => useContext(ToastCtx);
 
-/* run a mutation and toast the result (or the error message) */
+/* run a mutation via the real API and toast the result (or error) */
 function useAction() {
   const toast = useToast();
   return useCallback(<A extends unknown[]>(fn: (s: any, ...a: A) => string, ...args: A) => {
-    try { toast(adminStore.run(fn as any, ...args)); }
-    catch (e: any) { toast(e?.message ?? "That could not be done."); }
+    try {
+      // Map mutation function names to API calls
+      const fnName = fn.name;
+      if (fnName === "setRole" && args[0] && args[1]) {
+        const res = adminApi.setRole(String(args[0]), String(args[1]));
+        toast(res.message);
+      } else if (fnName === "setCentreActive" && args[0] && args[1] !== undefined) {
+        const res = adminApi.setCentreActive(String(args[0]), Boolean(args[1]));
+        toast(res.message);
+      } else if (fnName === "setDayStatus" && args[0] && args[1]) {
+        const res = adminApi.setDayStatus(String(args[0]), String(args[1]));
+        toast(res.message);
+      } else if (fnName === "cancelBooking" && args[0]) {
+        const res = adminApi.cancelBooking(String(args[0]));
+        toast(res.message);
+      } else if (fnName === "markNoShow" && args[0]) {
+        const res = adminApi.markNoShow(String(args[0]));
+        toast(res.message);
+      } else if (fnName === "retryPayment" && args[0]) {
+        const res = adminApi.retryPayment(String(args[0]));
+        toast(res.message);
+      } else if (fnName === "declareEvent" && args[0] && args[1]) {
+        const res = adminApi.declareEvent(String(args[0]), String(args[1]), String(args[2] ?? ""));
+        toast(res.message);
+      } else if (fnName === "setGrievanceStatus" && args[0] && args[1]) {
+        const res = adminApi.setGrievanceStatus(String(args[0]), String(args[1]));
+        toast(res.message);
+      } else {
+        // Fallback to mock for unmapped mutations
+        toast(adminStore.run(fn as any, ...args));
+      }
+    } catch (e: any) { toast(e?.message ?? "That could not be done."); }
   }, [toast]);
 }
 
@@ -37,7 +68,7 @@ export function AdminApp() {
     timer.current = window.setTimeout(() => setMsg(""), 3600);
   }, []);
 
-  const authed = adminStore.isAuthed();
+  const authed = adminApi.isAuthed();
   useAdmin(); // subscribe so login/logout re-render
 
   return (
@@ -62,12 +93,13 @@ function AdminLogin() {
   async function send() {
     if (digits.length !== 10) return setErr("Enter a 10-digit mobile number.");
     setErr(""); setBusy(true);
-    try { const r = await adminStore.requestOtp("+91" + digits); setDev(r.devCode); setStep("otp"); }
+    try { const r = await adminApi.requestOtp("+91" + digits); setDev(r.devCode); setStep("otp"); }
+    catch (e: any) { setErr(e?.message ?? "Try again."); }
     finally { setBusy(false); }
   }
   async function verify() {
     setErr(""); setBusy(true);
-    try { await adminStore.verifyOtp("+91" + digits, code); }
+    try { await adminApi.verifyOtp("+91" + digits, code); }
     catch (e: any) { setErr(e?.message ?? "Try again."); setCode(""); }
     finally { setBusy(false); }
   }
@@ -140,7 +172,7 @@ function Console() {
         </nav>
         <div className="ad-railfoot">
           Signed in as <b>{s.admin?.name}</b><br />{s.admin?.mobile}
-          <button className="ad-signout" onClick={() => adminStore.logout()}>Sign out</button>
+          <button className="ad-signout" onClick={() => { adminApi.logout(); window.location.reload(); }}>Sign out</button>
         </div>
       </aside>
       <main className="ad-main">
