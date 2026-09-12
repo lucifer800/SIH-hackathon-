@@ -15,7 +15,7 @@ export const AUTH_POLICY = {
   codeDigits: 4,              // matches the four OTP boxes in the Sunrise design
   codeTtlMinutes: 5,
   maxAttempts: 5,
-  requestsPerHourPerMobile: 3,
+  requestsPerHourPerMobile: 50, // increased for testing; reduce to 3 in production
   resendAfterSeconds: 30,
   accessTtlMinutes: 15,
   refreshTtlDays: 60,         // a farmer books twice a season; do not log them out
