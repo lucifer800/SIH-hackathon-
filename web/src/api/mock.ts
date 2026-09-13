@@ -26,9 +26,9 @@ const KEY = "kq-mock-state-v3";
 const OTP_KEY = "kq-mock-otp";
 
 const CENTRES: Centre[] = [
-  { id: "jagraon", name: "Jagraon Procurement Centre", location: "Jagraon, Ludhiana", district: "Ludhiana", distanceKm: 6 },
-  { id: "mullanpur", name: "Mullanpur Procurement Centre", location: "Mullanpur, Ludhiana", district: "Ludhiana", distanceKm: 11 },
-  { id: "raikot", name: "Raikot Procurement Centre", location: "Raikot, Ludhiana", district: "Ludhiana", distanceKm: 19 },
+  { id: "jagraon", name: "Jagraon Procurement Centre", location: "Jagraon, Ludhiana", district: "Ludhiana", distanceKm: 6, lat: 30.7838, lng: 75.4735 },
+  { id: "mullanpur", name: "Mullanpur Procurement Centre", location: "Mullanpur, Ludhiana", district: "Ludhiana", distanceKm: 11, lat: 30.8574, lng: 76.0892 },
+  { id: "raikot", name: "Raikot Procurement Centre", location: "Raikot, Ludhiana", district: "Ludhiana", distanceKm: 19, lat: 30.6538, lng: 75.6046 },
 ];
 
 /**

@@ -40,7 +40,17 @@ export async function buildApp(): Promise<FastifyInstance> {
     trustProxy: true,
   });
 
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+      },
+    },
+  });
 
   // The prototype shipped `Access-Control-Allow-Origin: *` on a bearer-token API.
   // This is where that gets replaced with an explicit list.

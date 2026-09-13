@@ -20,6 +20,7 @@ export interface Queue {
 }
 export interface Centre {
   id: string; name: string; location: string; district: string; distanceKm: number;
+  lat?: number; lng?: number;
 }
 export interface Slot {
   id: string; time: string; end: string; capacityTrolleys: number;

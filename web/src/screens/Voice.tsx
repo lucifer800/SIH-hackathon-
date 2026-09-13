@@ -36,8 +36,15 @@ export function Voice() {
     if (!SR) { setListening(true); setTimeout(() => { setListening(false); ask(t("qTurn")); }, 1400); return; }
     const rec = new SR();
     rec.lang = lang === "pa" ? "pa-IN" : lang === "hi" ? "hi-IN" : "en-IN";
-    rec.onresult = (e: any) => ask(e.results[0][0].transcript);
+    rec.onresult = (e: any) => {
+      rec.abort();
+      ask(e.results[0][0].transcript);
+    };
     rec.onend = () => setListening(false);
+    rec.onerror = () => {
+      rec.abort();
+      setListening(false);
+    };
     setListening(true);
     rec.start();
   }
@@ -69,7 +76,7 @@ export function Voice() {
           ))}
         </div>
 
-        <button type="button" onClick={listen} style={{ marginTop: "auto", height: 74, borderRadius: 999, background: "var(--marigold)", color: "var(--amber-text-3)", fontSize: 17, fontWeight: 800, fontFamily: font }}>
+        <button type="button" onClick={listen} aria-label={listening ? t("stopListening") : t("askAgain")} style={{ marginTop: "auto", height: 74, borderRadius: 999, background: "var(--marigold)", color: "var(--amber-text-3)", fontSize: 17, fontWeight: 800, fontFamily: font }}>
           🎙 {listening ? t("stopListening") : t("askAgain")}
         </button>
       </ScreenBody>

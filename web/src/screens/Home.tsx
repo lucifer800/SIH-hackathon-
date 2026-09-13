@@ -1,27 +1,20 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type Dashboard } from "../api";
+import { api } from "../api";
 import { useI18n } from "../i18n/context";
-import { fmtDate } from "../i18n/format";
+import { paymentLabel } from "../i18n/content";
+import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, LangChips, useToast, money } from "../ui";
 
 export function Home() {
   const { t, lang, font } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
-  const [d, setD] = useState<Dashboard | null>(null);
-  const [error, setError] = useState(false);
-
-  function load() {
-    setError(false);
-    api.dashboard(lang).then(setD).catch(() => setError(true));
-  }
-
-  useEffect(() => { load(); }, [lang]);
+  const { data: d, loading, error, refetch } = useQuery(() => api.dashboard(lang), [lang]);
 
   async function refresh() {
     const q = await api.advanceQueue();
-    if (q) { setD((cur) => (cur ? { ...cur, queue: q } : cur)); toast(t("refresh") + " ✓"); }
+    if (q) toast(t("refresh") + " ✓");
+    refetch();
   }
 
   const a = d?.appointment;
@@ -35,9 +28,9 @@ export function Home() {
         {error ? (
           <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
             <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--terra)" }}>{t("errorRetry")}</div>
-            <button type="button" onClick={load} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
+            <button type="button" onClick={refetch} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
           </div>
-        ) : !d ? <Skeleton /> : (
+        ) : loading || !d ? <Skeleton /> : (
           <div className="fade-in">
             {/* greeting */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -59,7 +52,7 @@ export function Home() {
                   <div className="h-display" style={{ fontSize: 20, color: "var(--on-dark-3)" }}>{a.slot.slice(-2)}</div>
                 </div>
                 <div style={{ marginTop: 10, fontSize: 15.5, fontWeight: 600, lineHeight: 1.5, color: "var(--on-dark-2)", fontFamily: font }}>
-                  {a.centre} · {a.crop} · {a.qtl} qtl
+                  {a.centre} · {a.crop} · {a.qtl} {t("qtlUnit")}
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                   <button type="button" onClick={() => toast(`${t("gateOtp")} ${a.gateOtp} — ${t("showAtGate")}`)} style={{ flex: 1, minHeight: 56, borderRadius: 999, background: "var(--marigold)", color: "var(--amber-text-3)", fontSize: 15, fontWeight: 800 }}>{t("gateOtp")} {a.gateOtp}</button>
@@ -79,10 +72,7 @@ export function Home() {
                 <div className="eyebrow">{t("payment")}</div>
                 <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{money.format(d.payment?.amount ?? d.procurementValue)}</div>
                 <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: d.payment?.paymentStatus === "failed" ? "var(--terra)" : "var(--leaf)", fontFamily: font }}>
-                  {!d.payment ? t("creditedOn")
-                    : d.payment.paymentStatus === "failed" ? t("heldAction")
-                    : d.payment.paymentStatus === "credited" ? t("creditedOn") + (d.payment.paymentDate ? " " + fmtDate(d.payment.paymentDate, lang) : "")
-                    : t("expectedOn") + (d.payment.paymentDate ? " " + fmtDate(d.payment.paymentDate, lang) : "")}
+                  {d.payment ? paymentLabel(d.payment, lang, t) : t("creditedOn")}
                 </div>
               </button>
               <div className="card" style={{ padding: 18 }}>
@@ -127,9 +117,9 @@ function Skeleton() {
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ height: 48 }} />
-      <div style={{ height: 180, borderRadius: 32, background: "rgba(30,59,35,.06)" }} />
-      <div style={{ height: 90, borderRadius: 26, background: "rgba(30,59,35,.06)" }} />
-      <div style={{ height: 62, borderRadius: 999, background: "rgba(30,59,35,.06)" }} />
+      <div style={{ height: 180, borderRadius: 32, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+      <div style={{ height: 90, borderRadius: 26, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+      <div style={{ height: 62, borderRadius: 999, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
     </div>
   );
 }

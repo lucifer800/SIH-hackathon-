@@ -1,44 +1,21 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type Procurement } from "../api";
+import { api } from "../api";
 import { useI18n } from "../i18n/context";
 import { fmtDate } from "../i18n/format";
+import { paymentBadge, paymentLabel } from "../i18n/content";
+import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, money } from "../ui";
 
 export function Records() {
   const { t, lang, font } = useI18n();
   const nav = useNavigate();
-  const [items, setItems] = useState<Procurement[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  function load() {
-    setError(false); setLoading(true);
-    api.procurements()
-      .then((p) => { setItems(p); setLoading(false); })
-      .catch(() => { setError(true); setLoading(false); });
-  }
-
-  useEffect(() => { load(); }, []);
-
-  const payLabel = (p: Procurement) => {
-    const on = p.paymentDate ? " " + fmtDate(p.paymentDate, lang) : "";
-    if (p.paymentStatus === "failed") return t("heldAction");
-    if (p.paymentStatus === "credited") return t("creditedOn") + on;
-    return t("expectedOn") + on;
-  };
+  const { data: items, loading, error, refetch } = useQuery(() => api.procurements(), []);
 
   function logout() {
     api.logout();
     window.dispatchEvent(new Event("kq-auth"));
     nav("/login", { replace: true });
   }
-
-  const badge: Record<Procurement["paymentStatus"], { bg: string; fg: string; label: string }> = {
-    credited: { bg: "rgba(87,120,63,.16)", fg: "var(--leaf)", label: t("creditedOn") },
-    processing: { bg: "var(--amber-soft)", fg: "var(--amber-text)", label: t("processing") },
-    failed: { bg: "rgba(194,82,31,.14)", fg: "var(--terra)", label: t("failed") },
-  };
 
   return (
     <>
@@ -53,7 +30,7 @@ export function Records() {
           {error ? (
             <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
               <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--terra)" }}>{t("errorRetry")}</div>
-              <button type="button" onClick={load} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
+              <button type="button" onClick={refetch} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
             </div>
           ) : loading ? (
             <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
@@ -61,14 +38,14 @@ export function Records() {
                 <div key={i} style={{ height: 110, borderRadius: 26, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
               ))}
             </div>
-          ) : items.length === 0 ? (
+          ) : !items || items.length === 0 ? (
             <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "var(--amber-soft)", fontSize: 15.5, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font, textAlign: "center" }}>
               {t("noRecords")}
             </div>
           ) : (
             <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
               {items.map((p) => {
-                const b = badge[p.paymentStatus];
+                const b = paymentBadge(p.paymentStatus, t);
                 return (
                   <div key={p.id} className="card" style={{ padding: 18 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -81,7 +58,7 @@ export function Records() {
                         <span style={{ display: "inline-block", marginTop: 6, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 800, background: b.bg, color: b.fg }}>{b.label}</span>
                       </div>
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{payLabel(p)}</div>
+                    <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{paymentLabel(p, lang, t)}</div>
                     {p.failureReason ? (
                       <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 16, background: "rgba(194,82,31,.08)", border: "1.5px solid rgba(194,82,31,.2)", fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, color: "var(--terra-hover)", fontFamily: font }}>
                         {p.failureReason[lang]}

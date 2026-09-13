@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./api";
 import { PhoneFrame } from "./ui";
 import { Login } from "./screens/Login";
 import { Home } from "./screens/Home";
-import { Queue } from "./screens/Queue";
-import { Book } from "./screens/Book";
-import { Rates } from "./screens/Rates";
-import { Alerts } from "./screens/Alerts";
-import { Voice } from "./screens/Voice";
-import { Records } from "./screens/Records";
-import { AdminApp } from "./admin/AdminApp";
+
+const Queue = lazy(() => import("./screens/Queue").then(m => ({ default: m.Queue })));
+const Book = lazy(() => import("./screens/Book").then(m => ({ default: m.Book })));
+const Rates = lazy(() => import("./screens/Rates").then(m => ({ default: m.Rates })));
+const Alerts = lazy(() => import("./screens/Alerts").then(m => ({ default: m.Alerts })));
+const Voice = lazy(() => import("./screens/Voice").then(m => ({ default: m.Voice })));
+const Records = lazy(() => import("./screens/Records").then(m => ({ default: m.Records })));
+
+const AdminApp = lazy(() => import("./admin/AdminApp").then(m => ({ default: m.AdminApp })));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const loc = useLocation();
@@ -30,19 +32,19 @@ export function App() {
 
   // The admin console is a desktop surface, not a phone screen — it renders
   // full-width, outside the Sunrise PhoneFrame the farmer app lives in.
-  if (loc.pathname.startsWith("/admin")) return <AdminApp />;
+  if (loc.pathname.startsWith("/admin")) return <Suspense fallback={<div />}><AdminApp /></Suspense>;
 
   return (
     <PhoneFrame>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
-        <Route path="/queue" element={<RequireAuth><Queue /></RequireAuth>} />
-        <Route path="/book" element={<RequireAuth><Book /></RequireAuth>} />
-        <Route path="/rates" element={<RequireAuth><Rates /></RequireAuth>} />
-        <Route path="/alerts" element={<RequireAuth><Alerts /></RequireAuth>} />
-        <Route path="/voice" element={<RequireAuth><Voice /></RequireAuth>} />
-        <Route path="/records" element={<RequireAuth><Records /></RequireAuth>} />
+        <Route path="/queue" element={<RequireAuth><Suspense fallback={<div />}><Queue /></Suspense></RequireAuth>} />
+        <Route path="/book" element={<RequireAuth><Suspense fallback={<div />}><Book /></Suspense></RequireAuth>} />
+        <Route path="/rates" element={<RequireAuth><Suspense fallback={<div />}><Rates /></Suspense></RequireAuth>} />
+        <Route path="/alerts" element={<RequireAuth><Suspense fallback={<div />}><Alerts /></Suspense></RequireAuth>} />
+        <Route path="/voice" element={<RequireAuth><Suspense fallback={<div />}><Voice /></Suspense></RequireAuth>} />
+        <Route path="/records" element={<RequireAuth><Suspense fallback={<div />}><Records /></Suspense></RequireAuth>} />
         <Route path="*" element={<Navigate to={api.isAuthed() ? "/home" : "/login"} replace />} />
       </Routes>
     </PhoneFrame>

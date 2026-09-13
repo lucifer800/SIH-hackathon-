@@ -1,37 +1,36 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Queue as Q } from "../api";
 import { useI18n } from "../i18n/context";
+import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
 export function Queue() {
   const { t, font } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
+  const { data: dash, loading, error, refetch } = useQuery(() => api.dashboard("en"), []);
   const [q, setQ] = useState<Q | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-  const timer = useRef<number>();
-
-  function load() {
-    setError(false);
-    api.dashboard("en")
-      .then((d) => { setQ(d.queue); setLoaded(true); })
-      .catch(() => { setError(true); setLoaded(true); });
-  }
 
   useEffect(() => {
-    load();
-    timer.current = window.setInterval(async () => {
-      try { const next = await api.advanceQueue(); if (next) setQ({ ...next }); } catch { /* silent poll failure */ }
+    if (dash?.queue && !q) setQ(dash.queue);
+  }, [dash?.queue, q]);
+
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const next = await api.advanceQueue();
+        if (next) setQ(next);
+      } catch { /* silent poll failure */ }
     }, 4200);
-    return () => window.clearInterval(timer.current);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function refresh() {
     try {
       const next = await api.advanceQueue();
-      if (next) { setQ({ ...next }); toast(t("clearedCounter")); }
+      if (next) { setQ(next); toast(t("clearedCounter")); refetch(); }
     } catch { toast(t("errorRetry")); }
   }
   async function ring() {
@@ -39,31 +38,35 @@ export function Queue() {
     catch { toast(t("errorRetry")); }
   }
 
-  // Error state
   if (error) return (
     <>
       <StatusBar right={t("liveQueue")} />
       <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
         <h2 className="h-display" style={{ margin: "6px 0 16px", fontSize: 31 }}>{t("liveQueue")}</h2>
-        <ErrorCard message={t("errorRetry")} onRetry={load} retryLabel={t("retry")} />
+        <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
+          <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--terra)" }}>{t("errorRetry")}</div>
+          <button type="button" onClick={refetch} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{t("retry")}</button>
+        </div>
       </ScreenBody>
       <TabBar />
     </>
   );
 
-  // Loading state
-  if (!loaded) return (
+  if (loading) return (
     <>
       <StatusBar right={t("liveQueue")} />
       <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
         <h2 className="h-display" style={{ margin: "6px 0 16px", fontSize: 31 }}>{t("liveQueue")}</h2>
-        <LoadingSkeleton rows={3} />
+        <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ height: i === 0 ? 80 : 60, borderRadius: 26, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
+          ))}
+        </div>
       </ScreenBody>
       <TabBar />
     </>
   );
 
-  // Not in queue
   if (!q) return (
     <>
       <StatusBar right={t("liveQueue")} />
@@ -144,25 +147,6 @@ function Lane({ total, served, mySeq, youLabel }: { total: number; served: numbe
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function LoadingSkeleton({ rows }: { rows: number }) {
-  return (
-    <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} style={{ height: i === 0 ? 80 : 60, borderRadius: 26, background: "rgba(30,59,35,.06)", animation: "sk-pulse 1.5s ease-in-out infinite" }} />
-      ))}
-    </div>
-  );
-}
-
-function ErrorCard({ message, onRetry, retryLabel }: { message: string; onRetry: () => void; retryLabel: string }) {
-  return (
-    <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "rgba(194,82,31,.08)", textAlign: "center" }}>
-      <div style={{ fontSize: 15.5, fontWeight: 700, lineHeight: 1.55, color: "var(--terra)" }}>{message}</div>
-      <button type="button" onClick={onRetry} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 999, background: "var(--terra)", color: "#fff", fontSize: 14, fontWeight: 800 }}>{retryLabel}</button>
     </div>
   );
 }

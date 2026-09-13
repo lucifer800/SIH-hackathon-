@@ -7,7 +7,6 @@
  * Response mapping lives here on purpose: the screens keep their existing shapes
  * (api/types.ts), and this file translates the server's payloads into them.
  */
-import { mock } from "./mock";
 import type { Dashboard, Centre, Slot, Appointment, Queue, Procurement } from "./types";
 import type { Lang } from "../i18n/strings";
 
@@ -94,8 +93,6 @@ function toPayment(p: any): Procurement | null {
 /* --------------------------------------------------------------- client */
 
 export const real = {
-  ...mock, // procurements, notifications, rates, assist, queue helpers — until later phases
-
   isAuthed() { return !!get(ACCESS); },
 
   async requestOtp(mobile: string) {

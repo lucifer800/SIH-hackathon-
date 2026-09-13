@@ -77,6 +77,7 @@ export function Login() {
                   inputMode="numeric" autoFocus value={digits}
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder={t("mobilePlaceholder")}
+                  aria-label={t("enterMobile")}
                   style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 600, letterSpacing: ".04em", color: "var(--green-ink)", minWidth: 0 }}
                 />
               </div>
@@ -95,9 +96,9 @@ export function Login() {
               </p>
               {devCode ? <p style={{ margin: "0 0 16px", fontSize: 12.5, fontWeight: 800, color: "var(--terra)" }}>demo code: {devCode}</p> : null}
 
-              <div style={{ display: "flex", gap: 12, margin: "16px 0 10px" }}>
+              <div style={{ display: "flex", gap: 12, margin: "16px 0 10px" }} role="group" aria-label={t("enterCode")}>
                 {[0, 1, 2, 3].map((i) => (
-                  <div key={i} style={{ flex: 1, height: 76, borderRadius: 22, border: "2.5px solid var(--line)", background: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontSize: 34, fontWeight: 600 }}>
+                  <div key={i} style={{ flex: 1, height: 76, borderRadius: 22, border: "2.5px solid var(--line)", background: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontSize: 34, fontWeight: 600 }} aria-label={`Digit ${i + 1}: ${code[i] ?? "empty"}`}>
                     {code[i] ?? ""}
                   </div>
                 ))}
