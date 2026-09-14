@@ -31,7 +31,18 @@ async function raw(path: string, opts: { method?: string; body?: unknown; idem?:
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept-Language": get("kq-lang") ?? "pa" };
   if (opts.auth !== false) { const tok = get(ACCESS); if (tok) headers.Authorization = `Bearer ${tok}`; }
   if (opts.idem) headers["Idempotency-Key"] = opts.idem;
-  return fetch(BASE + path, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+
+  // Retry with exponential backoff on network failures (not 4xx/5xx HTTP errors)
+  let lastErr: Error | null = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await fetch(BASE + path, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    } catch (e) {
+      lastErr = e as Error;
+      if (i < 2) await new Promise(r => setTimeout(r, Math.pow(2, i) * 500)); // 500ms, 1s backoff
+    }
+  }
+  throw lastErr || new Error("Network request failed");
 }
 
 async function req<T = any>(path: string, opts: Parameters<typeof raw>[1] = {}): Promise<T> {

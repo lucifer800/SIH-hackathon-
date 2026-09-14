@@ -1,4 +1,6 @@
 import { EventEmitter } from "node:events";
+import { createClient } from "redis";
+import { env } from "../env.js";
 
 /**
  * A tiny in-process pub/sub for live queue updates.
@@ -15,9 +17,25 @@ export type QueueEvent = { type: "queue-updated"; centreId: string; date: string
 
 class Bus {
   private emitter = new EventEmitter();
+  private redis: Awaited<ReturnType<typeof createClient>> | null = null;
+  private redisSub: Awaited<ReturnType<typeof createClient>> | null = null;
+
   constructor() {
-    // A busy centre can have many farmers streaming one day at once.
     this.emitter.setMaxListeners(1000);
+    this.initRedis();
+  }
+
+  private async initRedis() {
+    if (!env.REDIS_URL) return; // Fall back to in-memory
+    try {
+      this.redis = createClient({ url: env.REDIS_URL });
+      this.redisSub = this.redis.duplicate();
+      await this.redisSub.connect();
+    } catch (e: any) {
+      console.warn("[bus] Redis connection failed, falling back to in-memory", e);
+      this.redis = null;
+      this.redisSub = null;
+    }
   }
 
   private key(centreId: string, date: string) {
@@ -25,12 +43,36 @@ class Bus {
   }
 
   publish(centreId: string, date: string) {
-    this.emitter.emit(this.key(centreId, date), { type: "queue-updated", centreId, date } as QueueEvent);
+    const key = this.key(centreId, date);
+    const event = { type: "queue-updated", centreId, date } as QueueEvent;
+    // Local emit for this instance
+    this.emitter.emit(key, event);
+    // Redis publish for other instances
+    if (this.redis) {
+      this.redis.publish(key, JSON.stringify(event)).catch(e => console.warn("[bus] Redis publish failed", e));
+    }
   }
 
   subscribe(centreId: string, date: string, handler: (e: QueueEvent) => void): () => void {
     const key = this.key(centreId, date);
     this.emitter.on(key, handler);
+
+    // Redis subscribe for cross-instance messages
+    if (this.redisSub) {
+      const onMessage = (msg: string) => {
+        try {
+          const event = JSON.parse(msg) as QueueEvent;
+          handler(event);
+        } catch { /* ignore parse errors */ }
+      };
+      this.redisSub.subscribe(key, onMessage).catch((e: any) => console.warn("[bus] Redis subscribe failed", e));
+
+      return () => {
+        this.emitter.off(key, handler);
+        this.redisSub?.unsubscribe(key, onMessage).catch(() => {});
+      };
+    }
+
     return () => this.emitter.off(key, handler);
   }
 }
