@@ -5,6 +5,17 @@ import { env } from "../env.js";
 import { render } from "../i18n/templates.js";
 import { maskMobile } from "../lib/mobile.js";
 import type { Channel, SendRequest, SendResult } from "./types.js";
+import type { TemplateId } from "../i18n/templates.js";
+
+const MSG91_TEMPLATE_IDS: Record<TemplateId, string> = {
+  otp_login: "6aa7bf15d24211ecd7004644",
+  booking_confirmed: "6aa7bf15d24211ecd7004644",
+  queue_five_away: "6aa7bf15d24211ecd7004644",
+  payment_failed: "6aa7bf15d24211ecd7004644",
+  payment_credited: "6aa7bf15d24211ecd7004644",
+  reschedule_offer: "6aa7bf15d24211ecd7004644",
+  welcome: "6aa7bf15d24211ecd7004644",
+};
 
 /**
  * Live SMS over MSG91 (Indian DLT-compliant A2P). Same contract as the stub: the
@@ -26,10 +37,11 @@ export class Msg91Channel implements Channel {
     }).returning();
 
     try {
+      const msg91TemplateId = MSG91_TEMPLATE_IDS[req.templateId];
       const res = await fetch("https://control.msg91.com/api/v5/flow/", {
         method: "POST",
         headers: { "Content-Type": "application/json", authkey: env.SMS_API_KEY ?? "" },
-        body: JSON.stringify({ mobiles: req.to.replace("+", ""), template_id: rendered.templateId, ...req.vars }),
+        body: JSON.stringify({ mobiles: req.to.replace("+", ""), template_id: msg91TemplateId, ...req.vars }),
       });
       const ok = res.ok;
       const json = ok ? ((await res.json().catch(() => ({}))) as { request_id?: string }) : {};

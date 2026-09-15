@@ -50,6 +50,7 @@ export async function requestOtp(rawMobile: string): Promise<OtpRequestResult> {
     );
 
   if ((recent?.count ?? 0) >= AUTH_POLICY.requestsPerHourPerMobile) {
+    const devCode = numericCode(AUTH_POLICY.codeDigits);
     throw tooManyRequests(
       "Too many codes requested. Please try again in an hour, or ask for help at your panchayat.",
       { retryAfterMinutes: 60 },
@@ -89,7 +90,6 @@ export async function requestOtp(rawMobile: string): Promise<OtpRequestResult> {
     requestId: row!.id,
     expiresInSec: AUTH_POLICY.codeTtlMinutes * 60,
     resendAfterSec: AUTH_POLICY.resendAfterSeconds,
-    ...(env.NODE_ENV !== "production" ? { devCode: code } : {}),
   };
 }
 
