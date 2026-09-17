@@ -26,6 +26,9 @@ export function Login() {
       const res = await api.requestOtp("+91" + digits);
       setDevCode(res.devCode); // demo affordance — the real code arrives by SMS
       setStep("otp");
+    } catch (e: any) {
+      toast(e.message || "Failed to send code. Try again.");
+      setMobile("");
     } finally { setBusy(false); }
   }
 
@@ -55,7 +58,8 @@ export function Login() {
       window.dispatchEvent(new Event("kq-auth"));
       nav("/home", { replace: true });
     } catch (e: any) {
-      toast(e.message || "Try again");
+      const msg = e.message || "Verification failed. Try again.";
+      toast(msg);
       setCode("");
     } finally { setBusy(false); }
   }
