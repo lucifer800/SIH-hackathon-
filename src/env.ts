@@ -18,7 +18,8 @@ const schema = z.object({
 
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
 
-  CHANNEL_DRIVER: z.enum(["stub", "msg91"]).default("stub"),
+  CHANNEL_DRIVER: z.enum(["stub", "msg91", "fast2sms"]).default("stub"),
+  FAST2SMS_API_KEY: z.string().optional(),
   SMS_API_KEY: z.string().optional(),
   BHASHINI_API_KEY: z.string().optional(),
   DATA_GOV_API_KEY: z.string().optional(),
