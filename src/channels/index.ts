@@ -1,6 +1,7 @@
 import { env } from "../env.js";
 import { StubChannel } from "./stub.js";
 import { Msg91Channel } from "./msg91.js";
+import { Fast2smsChannel } from "./fast2sms.js";
 import type { Channel } from "./types.js";
 
 let instance: Channel | null = null;
@@ -14,6 +15,9 @@ export function channel(): Channel {
   switch (env.CHANNEL_DRIVER) {
     case "msg91":
       instance = new Msg91Channel();
+      break;
+    case "fast2sms":
+      instance = new Fast2smsChannel();
       break;
     default:
       instance = new StubChannel();
