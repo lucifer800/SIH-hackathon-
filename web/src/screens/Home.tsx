@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useI18n } from "../i18n/context";
 import { paymentLabel } from "../i18n/content";
+import { fmtNumber, fmtTime } from "../i18n/format";
+import { translateCentreName } from "../i18n/centreNames";
 import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, LangChips, useToast, money } from "../ui";
 
@@ -36,7 +38,7 @@ export function Home() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <div style={{ fontFamily: "var(--font-pa)", fontSize: 15, fontWeight: 700, color: "var(--muted)" }}>{t("greeting")}</div>
-                <div className="h-display" style={{ fontSize: 26 }}>{d.user.name.split(" ")[0]} ji</div>
+                <div className="h-display" style={{ fontSize: 26 }}>{d.user.name.split(" ")[0]} {t("honorific")}</div>
               </div>
               <LangChips compact />
             </div>
@@ -48,11 +50,11 @@ export function Home() {
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--marigold)" }} />{t("tomorrow")}
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 14 }}>
-                  <div className="h-display" style={{ fontWeight: 700, fontSize: 66, lineHeight: .9 }}>{a.slot.replace(/ ?[AP]M/, "")}</div>
-                  <div className="h-display" style={{ fontSize: 20, color: "var(--on-dark-3)" }}>{a.slot.slice(-2)}</div>
+                  <div className="h-display" style={{ fontWeight: 700, fontSize: 66, lineHeight: .9 }}>{fmtTime(a.slot, lang).replace(/ ?[AP]M/, "")}</div>
+                  <div className="h-display" style={{ fontSize: 20, color: "var(--on-dark-3)" }}>{fmtTime(a.slot, lang).slice(-2)}</div>
                 </div>
                 <div style={{ marginTop: 10, fontSize: 15.5, fontWeight: 600, lineHeight: 1.5, color: "var(--on-dark-2)", fontFamily: font }}>
-                  {a.centre} · {a.crop} · {a.qtl} {t("qtlUnit")}
+                  {translateCentreName(a.centre, lang)} · {t("crop" + a.crop)} · {fmtNumber(a.qtl, lang)} {t("qtlUnit")}
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                   <button type="button" onClick={() => toast(`${t("gateOtp")} ${a.gateOtp} — ${t("showAtGate")}`)} style={{ flex: 1, minHeight: 56, borderRadius: 999, background: "var(--marigold)", color: "var(--amber-text-3)", fontSize: 15, fontWeight: 800 }}>{t("gateOtp")} {a.gateOtp}</button>
@@ -77,7 +79,7 @@ export function Home() {
               </button>
               <div className="card" style={{ padding: 18 }}>
                 <div className="eyebrow">{t("entitlement")}</div>
-                <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{remaining.toFixed(1)}</div>
+                <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{fmtNumber(remaining, lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</div>
                 <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{t("quintalsLeft")}</div>
               </div>
             </div>
@@ -88,7 +90,7 @@ export function Home() {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div>
                     <div className="eyebrow" style={{ color: "var(--amber-text)" }}>{t("liveQueue")}</div>
-                    <div className="h-display" style={{ marginTop: 6, fontSize: 22, fontFamily: font }}>{q.farmersAhead} {t("farmersAhead")} · {q.estimatedWaitMinutes} {t("minutes")}</div>
+                    <div className="h-display" style={{ marginTop: 6, fontSize: 22, fontFamily: font }}>{fmtNumber(q.farmersAhead, lang)} {t("farmersAhead")} · {fmtNumber(q.estimatedWaitMinutes, lang)} {t("minutes")}</div>
                   </div>
                   <button type="button" onClick={refresh} style={{ minHeight: 48, borderRadius: 999, padding: "0 18px", background: "var(--green-ink)", color: "var(--on-dark)", fontSize: 13.5, fontWeight: 800 }}>{t("refresh")}</button>
                 </div>

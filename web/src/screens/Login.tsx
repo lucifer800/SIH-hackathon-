@@ -7,7 +7,7 @@ import { LangChips, StatusBar, ScreenBody, useToast } from "../ui";
 type Step = "mobile" | "otp";
 
 export function Login() {
-  const { t, font } = useI18n();
+  const { t, font, lang } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
   const [step, setStep] = useState<Step>("mobile");
@@ -82,6 +82,7 @@ export function Login() {
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder={t("mobilePlaceholder")}
                   aria-label={t("enterMobile")}
+                  lang={lang}
                   style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 600, letterSpacing: ".04em", color: "var(--green-ink)", minWidth: 0 }}
                 />
               </div>

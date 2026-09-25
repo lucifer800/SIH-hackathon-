@@ -37,6 +37,8 @@ export interface Notification {
   id: string; category: string; channel: string;
   /** Mock authors all three languages (follows the toggle); a real sent SMS carries its one language in all three slots. */
   body: L10n; createdAt: string; read: boolean;
+  /** The language this message was actually authored/sent in — drives voiceover. Undefined for mock data, where body already follows the toggle. */
+  language?: Lang;
 }
 export interface RatePoint { day: string; value: number; }
 export interface Rates {

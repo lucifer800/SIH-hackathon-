@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { api } from "../api";
+import { useEffect, useRef, useState } from "react";
+import { api, type Notification } from "../api";
 import { useI18n } from "../i18n/context";
 import { fmtRelative } from "../i18n/format";
-import { categoryLabel, scriptFont, scriptLocale } from "../i18n/content";
+import { categoryLabel, channelLabel, scriptFont } from "../i18n/content";
+import { localeOf } from "../i18n/strings";
 import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
@@ -11,21 +12,65 @@ export function Alerts() {
   const toast = useToast();
   const { data: items, loading, error, refetch } = useQuery(() => api.notifications(), []);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const queueRef = useRef<string[]>([]);
 
-  const resolved = (items ?? []).map((n) => readIds.has(n.id) ? { ...n, read: true } : n);
+  const resolved = (Array.isArray(items) ? items : []).map((n) => readIds.has(n.id) ? { ...n, read: true } : n);
+
+  // A tab change or unmount must not leave the phone talking to itself.
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
   async function markRead(id: string) {
     await api.markRead(id);
     setReadIds((s) => new Set(s).add(id));
   }
-  function readAloud() {
-    toast(t("readToMe"));
-    const first = resolved[0];
-    if (first && "speechSynthesis" in window) {
-      const u = new SpeechSynthesisUtterance(first.body[lang]);
-      u.lang = scriptLocale(first.body[lang]);
-      window.speechSynthesis.speak(u);
+
+  /** Speaks in the language the message was actually sent in (mock data has none set, so it follows the toggle). */
+  function speak(n: Notification, onDone: () => void) {
+    const text = n.body[lang] || n.body.en || "";
+    if (!("speechSynthesis" in window) || !text) return onDone();
+    const targetLang = n.language ?? lang;
+    const locale = localeOf(targetLang);
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0 && !voices.some((v) => v.lang === locale || v.lang.startsWith(targetLang))) {
+      toast(t("voiceUnavailable"));
     }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = locale;
+    u.onend = onDone;
+    u.onerror = onDone;
+    window.speechSynthesis.speak(u);
+  }
+
+  function stopReading() {
+    queueRef.current = [];
+    window.speechSynthesis?.cancel();
+    setPlayingId(null);
+  }
+
+  function toggleOne(n: Notification) {
+    if (playingId === n.id) return stopReading();
+    queueRef.current = [];
+    window.speechSynthesis?.cancel();
+    setPlayingId(n.id);
+    speak(n, () => setPlayingId((p) => (p === n.id ? null : p)));
+  }
+
+  function playNextQueued() {
+    const id = queueRef.current.shift();
+    if (!id) return setPlayingId(null);
+    const n = resolved.find((x) => x.id === id);
+    if (!n) return playNextQueued();
+    setPlayingId(id);
+    speak(n, playNextQueued);
+  }
+
+  function toggleReadAll() {
+    if (playingId != null) return stopReading();
+    const unread = resolved.filter((n) => !n.read);
+    if (unread.length === 0) return toast(t("noAlerts"));
+    queueRef.current = unread.map((n) => n.id);
+    playNextQueued();
   }
 
   return (
@@ -48,24 +93,32 @@ export function Alerts() {
             <div style={{ display: "grid", gap: 12 }}>
               {resolved.map((n) => {
                 const dark = !n.read;
+                const playing = playingId === n.id;
                 return (
-                  <button key={n.id} type="button" onClick={() => markRead(n.id)}
-                    style={{ textAlign: "left", padding: "18px 20px", borderRadius: 26, background: dark ? "var(--green-ink)" : "#fff", color: dark ? "var(--on-dark)" : "var(--green-ink)", boxShadow: dark ? "none" : "0 8px 20px rgba(30,59,35,.06)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: ".08em", color: dark ? "var(--marigold)" : "var(--muted-2)", fontFamily: scriptFont(categoryLabel(n.category, t)) }}>{categoryLabel(n.category, t)}</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? "var(--on-dark-3)" : "var(--muted-2)", fontFamily: font }}>{fmtRelative(n.createdAt, lang)} · {n.channel}</span>
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 15.5, fontWeight: 700, lineHeight: 1.5, fontFamily: scriptFont(n.body[lang]) }}>
-                      {n.body[lang]}
-                    </div>
-                  </button>
+                  <div key={n.id} style={{ position: "relative", borderRadius: 26, background: dark ? "var(--green-ink)" : "#fff", boxShadow: dark ? "none" : "0 8px 20px rgba(30,59,35,.06)" }}>
+                    <button type="button" onClick={() => markRead(n.id)}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "18px 56px 18px 20px", color: dark ? "var(--on-dark)" : "var(--green-ink)", background: "transparent" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: ".08em", color: dark ? "var(--marigold)" : "var(--muted-2)", fontFamily: scriptFont(categoryLabel(n.category, t)) }}>{categoryLabel(n.category, t)}</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? "var(--on-dark-3)" : "var(--muted-2)", fontFamily: font }}>{fmtRelative(n.createdAt, lang)} · {channelLabel(n.channel, t)}</span>
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: 15.5, fontWeight: 700, lineHeight: 1.5, fontFamily: scriptFont(n.body[lang] || n.body.en || "") }}>
+                        {n.body[lang] || n.body.en || ""}
+                      </div>
+                    </button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleOne(n); }}
+                      aria-label={playing ? t("stopReading") : t("listenAlert")}
+                      style={{ position: "absolute", top: 14, right: 14, width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 15, border: 0, background: dark ? "rgba(255,248,236,.16)" : "var(--field)", color: dark ? "var(--on-dark)" : "var(--green-ink)" }}>
+                      {playing ? "⏸" : "🔊"}
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
 
-          <button type="button" onClick={readAloud} style={{ marginTop: "auto", minHeight: 64, border: "2.5px solid var(--leaf)", borderRadius: 999, background: "transparent", color: "var(--leaf-text)", fontSize: 16, fontWeight: 800, fontFamily: font }}>
-            {t("readToMe")}
+          <button type="button" onClick={toggleReadAll} style={{ marginTop: "auto", minHeight: 64, border: "2.5px solid var(--leaf)", borderRadius: 999, background: "transparent", color: "var(--leaf-text)", fontSize: 16, fontWeight: 800, fontFamily: font }}>
+            {playingId != null ? t("stopReading") : t("readToMe")}
           </button>
         </div>
       </ScreenBody>

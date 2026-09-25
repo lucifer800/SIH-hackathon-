@@ -12,6 +12,13 @@ export function categoryLabel(category: string, t: (k: string) => string): strin
   return r === "cat" + category ? category : r;
 }
 
+/** Resolve a notification channel (SMS/IVR/in-app) to its translated label, falling back to the raw code. */
+export function channelLabel(channel: string, t: (k: string) => string): string {
+  const key = "channel" + channel.charAt(0).toUpperCase() + channel.slice(1).toLowerCase();
+  const r = t(key);
+  return r === key ? channel : r;
+}
+
 /** Payment status badge config. */
 export function paymentBadge(status: Procurement["paymentStatus"], t: (k: string) => string) {
   const map = {

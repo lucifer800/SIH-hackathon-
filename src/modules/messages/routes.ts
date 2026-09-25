@@ -21,7 +21,7 @@ export async function messageRoutes(app: FastifyInstance) {
       unread: rows.filter((m) => !m.readAt).length,
       messages: rows.map((m) => ({
         id: m.id, category: m.category, channel: m.channel, body: m.body,
-        createdAt: m.createdAt.toISOString(), read: m.readAt != null,
+        createdAt: m.createdAt.toISOString(), read: m.readAt != null, language: m.language,
       })),
     };
   });

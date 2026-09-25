@@ -31,3 +31,30 @@ export function fmtDate(iso: string, lang: Lang, opts: Intl.DateTimeFormatOption
   if (Number.isNaN(d)) return iso;
   return new Intl.DateTimeFormat(localeOf(lang), opts).format(d);
 }
+
+/** Localized number formatting. Uses locale-specific numerals and grouping. */
+export function fmtNumber(value: number, lang: Lang, opts: Intl.NumberFormatOptions = {}): string {
+  const formatted = new Intl.NumberFormat(localeOf(lang), opts).format(value);
+
+  // Convert Latin digits (0-9) to locale-specific numerals since browser Intl.NumberFormat doesn't support 'nu' option reliably
+  if (lang === "hi") {
+    const devanagari = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"];
+    return formatted.replace(/\d/g, (d) => devanagari[parseInt(d)]);
+  }
+  if (lang === "pa") {
+    const gurmukhi = ["੦", "੧", "੨", "੩", "੪", "੫", "੬", "੭", "੮", "੯"];
+    return formatted.replace(/\d/g, (d) => gurmukhi[parseInt(d)]);
+  }
+
+  return formatted;
+}
+
+/** Localized time formatting (e.g., "2:30 PM" → "२:३० PM" in Hindi). */
+export function fmtTime(timeString: string, lang: Lang): string {
+  const [time, period] = timeString.split(" ");
+  if (!time || !period) return timeString;
+  const [hourStr, minStr] = time.split(":");
+  const hour = parseInt(hourStr);
+  const min = parseInt(minStr);
+  return fmtNumber(hour, lang) + ":" + fmtNumber(min, lang, { minimumIntegerDigits: 2 }) + " " + period;
+}

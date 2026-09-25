@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useI18n } from "../i18n/context";
-import { fmtDate } from "../i18n/format";
+import { fmtDate, fmtNumber } from "../i18n/format";
 import { paymentBadge, paymentLabel } from "../i18n/content";
 import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, money } from "../ui";
@@ -51,7 +51,7 @@ export function Records() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                       <div>
                         <div style={{ fontSize: 16, fontWeight: 800 }}>{p.crop} · {p.variety}</div>
-                        <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{fmtDate(p.date, lang, { day: "numeric", month: "short", year: "numeric" })} · {p.quantityQuintals} {t("qtlUnit")}</div>
+                        <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{fmtDate(p.date, lang, { day: "numeric", month: "short", year: "numeric" })} · {fmtNumber(p.quantityQuintals, lang)} {t("qtlUnit")}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div className="h-display" style={{ fontSize: 22 }}>{money.format(p.amount)}</div>

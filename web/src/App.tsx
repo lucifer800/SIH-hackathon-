@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./api";
 import { PhoneFrame } from "./ui";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { Login } from "./screens/Login";
 import { Home } from "./screens/Home";
 
@@ -35,18 +36,20 @@ export function App() {
   if (loc.pathname.startsWith("/admin")) return <Suspense fallback={<div />}><AdminApp /></Suspense>;
 
   return (
-    <PhoneFrame>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
-        <Route path="/queue" element={<RequireAuth><Suspense fallback={<div />}><Queue /></Suspense></RequireAuth>} />
-        <Route path="/book" element={<RequireAuth><Suspense fallback={<div />}><Book /></Suspense></RequireAuth>} />
-        <Route path="/rates" element={<RequireAuth><Suspense fallback={<div />}><Rates /></Suspense></RequireAuth>} />
-        <Route path="/alerts" element={<RequireAuth><Suspense fallback={<div />}><Alerts /></Suspense></RequireAuth>} />
-        <Route path="/voice" element={<RequireAuth><Suspense fallback={<div />}><Voice /></Suspense></RequireAuth>} />
-        <Route path="/records" element={<RequireAuth><Suspense fallback={<div />}><Records /></Suspense></RequireAuth>} />
-        <Route path="*" element={<Navigate to={api.isAuthed() ? "/home" : "/login"} replace />} />
-      </Routes>
-    </PhoneFrame>
+    <ErrorBoundary>
+      <PhoneFrame>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
+          <Route path="/queue" element={<RequireAuth><Suspense fallback={<div />}><Queue /></Suspense></RequireAuth>} />
+          <Route path="/book" element={<RequireAuth><Suspense fallback={<div />}><Book /></Suspense></RequireAuth>} />
+          <Route path="/rates" element={<RequireAuth><Suspense fallback={<div />}><Rates /></Suspense></RequireAuth>} />
+          <Route path="/alerts" element={<RequireAuth><Suspense fallback={<div />}><Alerts /></Suspense></RequireAuth>} />
+          <Route path="/voice" element={<RequireAuth><Suspense fallback={<div />}><Voice /></Suspense></RequireAuth>} />
+          <Route path="/records" element={<RequireAuth><Suspense fallback={<div />}><Records /></Suspense></RequireAuth>} />
+          <Route path="*" element={<Navigate to={api.isAuthed() ? "/home" : "/login"} replace />} />
+        </Routes>
+      </PhoneFrame>
+    </ErrorBoundary>
   );
 }

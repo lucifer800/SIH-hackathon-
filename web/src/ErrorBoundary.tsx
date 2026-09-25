@@ -1,25 +1,4 @@
-import { Component, type ReactNode } from "react";
-
-function ErrorFallback() {
-  return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: "20px" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Error</div>
-        <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20, maxWidth: 300 }}>
-          KisanQ encountered an unexpected error. Please try refreshing the page.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          style={{ padding: "12px 28px", borderRadius: 999, background: "var(--green-ink)", color: "var(--on-dark)", fontWeight: 700, fontSize: 15, border: 0, cursor: "pointer" }}
-        >
-          Retry
-        </button>
-      </div>
-    </div>
-  );
-}
+import { Component, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -27,6 +6,7 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error?: Error;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -35,18 +15,56 @@ export class ErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error) {
-    console.error("ErrorBoundary caught:", error);
+    console.error("Error caught by boundary:", error);
   }
 
   render() {
     if (this.state.hasError) {
-      return <ErrorFallback />;
+      return (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          padding: "20px",
+          background: "linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%)",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          textAlign: "center"
+        }}>
+          <div style={{ maxWidth: 400 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <h1 style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 700, color: "#b45309" }}>
+              Something went wrong
+            </h1>
+            <p style={{ margin: "0 0 20px", fontSize: 14, color: "#92400e", lineHeight: 1.6 }}>
+              {this.state.error?.message || "An unexpected error occurred"}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: "12px 24px",
+                background: "#d97706",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer"
+              }}
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
     }
+
     return this.props.children;
   }
 }

@@ -2,19 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Slot } from "../api";
 import { useI18n } from "../i18n/context";
+import { fmtDate, fmtNumber, fmtTime } from "../i18n/format";
+import { translateCentreName } from "../i18n/centreNames";
+import type { Lang } from "../i18n/strings";
 import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
-function nextDates(n: number): { value: string; label: string }[] {
+function nextDates(n: number, lang: Lang = "en"): { value: string; label: string }[] {
   const out: { value: string; label: string }[] = [];
   const now = new Date();
   for (let i = 0; i < n; i++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
     const iso = d.toISOString().slice(0, 10);
-    const weekday = d.toLocaleDateString("en", { weekday: "short" });
-    const day = d.getDate();
-    const month = d.toLocaleDateString("en", { month: "short" });
-    out.push({ value: iso, label: `${day} ${month}, ${weekday}` });
+    const dateStr = fmtDate(iso, lang, { day: "numeric", month: "short", weekday: "short" });
+    out.push({ value: iso, label: dateStr });
   }
   return out;
 }
@@ -43,10 +44,10 @@ function useGeo() {
 }
 
 export function Book() {
-  const { t, tpl, font } = useI18n();
+  const { t, tpl, lang, font } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
-  const dates = useMemo(() => nextDates(3), []);
+  const dates = useMemo(() => nextDates(3, lang), [lang]);
   const geo = useGeo();
 
   const { data: init, loading, error, refetch } = useQuery(async () => {
@@ -102,7 +103,7 @@ export function Book() {
     setShowConfirm(false);
     if (!slot) return toast(t("chooseSlot"));
     if (slot.bookedTrolleys >= slot.capacityTrolleys) return toast(t("full"));
-    if (overEntitlement) return toast(tpl("onlyQtlLeft", { n: remaining.toFixed(1) }));
+    if (overEntitlement) return toast(tpl("onlyQtlLeft", { n: fmtNumber(remaining, lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }));
     setBusy(true);
     try {
       const appt = await api.book({ centreId: activeCentre, date, slotId, slot: slot.time, end: slot.end, qtl });
@@ -117,7 +118,7 @@ export function Book() {
   function handleBook() {
     if (!slot) return toast(t("chooseSlot"));
     if (slot.bookedTrolleys >= slot.capacityTrolleys) return toast(t("full"));
-    if (overEntitlement) return toast(tpl("onlyQtlLeft", { n: remaining.toFixed(1) }));
+    if (overEntitlement) return toast(tpl("onlyQtlLeft", { n: fmtNumber(remaining, lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }));
     setShowConfirm(true);
   }
 
@@ -152,8 +153,8 @@ export function Book() {
                   return (
                     <button key={c.id} type="button" onClick={() => { setCentreId(c.id); setSlotId(""); }}
                       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 64, borderRadius: 24, padding: "0 20px", border: `2.5px solid ${on ? "var(--leaf)" : "var(--line)"}`, background: on ? "rgba(87,120,63,.12)" : "#fff", color: on ? "var(--leaf-text)" : "var(--muted)", fontSize: 16, fontWeight: 800 }}>
-                      {c.name.replace(" Procurement Centre", "")}
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>{c.distanceKm} km {geo.pos ? t("fromYou") : ""}</span>
+                      {translateCentreName(c.name, lang)}
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtNumber(c.distanceKm, lang)} km {geo.pos ? t("fromYou") : ""}</span>
                     </button>
                   );
                 })}
@@ -176,9 +177,9 @@ export function Book() {
                   return (
                     <button key={s.id} type="button" disabled={full} onClick={() => setSlotId(s.id)}
                       style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5, minHeight: 82, borderRadius: 24, padding: "16px 18px", textAlign: "left", opacity: full ? .5 : 1, border: `2.5px solid ${on ? "var(--leaf)" : "var(--line)"}`, background: on ? "rgba(87,120,63,.12)" : "#fff" }}>
-                      <span className="h-display" style={{ fontSize: 21 }}>{s.time.replace(/ ?[AP]M/, "")}</span>
+                      <span className="h-display" style={{ fontSize: 21 }}>{fmtTime(s.time, lang)}</span>
                       <span style={{ fontSize: 12, fontWeight: 800, color: full ? "var(--terra)" : s.pool === "small_holder" ? "var(--leaf)" : "var(--muted-2)" }}>
-                        {full ? t("full") : s.pool === "small_holder" ? `${open} · ${t("reservedSmall")}` : `${open} ${t("left")}`}
+                        {full ? t("full") : s.pool === "small_holder" ? `${fmtNumber(open, lang)} · ${t("reservedSmall")}` : `${fmtNumber(open, lang)} ${t("left")}`}
                       </span>
                     </button>
                   );
@@ -190,10 +191,10 @@ export function Book() {
                 <button type="button" onClick={() => adjustQtl(-1)} style={{ width: 44, height: 44, borderRadius: 14, border: "2px solid var(--line)", background: "#fff", fontSize: 22, fontWeight: 800, color: "var(--green-ink)", lineHeight: 1 }}>−</button>
                 <input type="range" min={1} max={maxQtl} value={Math.min(qtl, maxQtl)} onChange={(e) => setQtl(Number(e.target.value))} style={{ flex: 1, accentColor: "var(--leaf)" }} />
                 <button type="button" onClick={() => adjustQtl(1)} style={{ width: 44, height: 44, borderRadius: 14, border: "2px solid var(--line)", background: "#fff", fontSize: 22, fontWeight: 800, color: "var(--green-ink)", lineHeight: 1 }}>+</button>
-                <div className="h-display" style={{ fontSize: 24, minWidth: 74, textAlign: "right", color: overEntitlement ? "var(--terra)" : "var(--green-ink)" }}>{qtl} {t("qtlUnit")}</div>
+                <div className="h-display" style={{ fontSize: 24, minWidth: 74, textAlign: "right", color: overEntitlement ? "var(--terra)" : "var(--green-ink)" }}>{fmtNumber(qtl, lang)} {t("qtlUnit")}</div>
               </div>
               <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>
-                {remaining.toFixed(1)} {t("quintalsLeft")} — {t("cappedByLand")}
+                {fmtNumber(remaining, lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} {t("quintalsLeft")} — {t("cappedByLand")}
               </p>
 
               <button type="button" className="cta" style={{ marginTop: "auto" }} disabled={busy || !slot} onClick={handleBook}>
@@ -212,9 +213,9 @@ export function Book() {
             <p style={{ fontSize: 15, fontWeight: 700, color: "var(--muted)", lineHeight: 1.5, fontFamily: font, margin: "0 0 6px" }}>{t("confirmBookMsg")}</p>
             {selectedCentre && slot && (
               <div style={{ margin: "14px 0", padding: "14px 16px", borderRadius: 18, background: "var(--field)", fontSize: 14, fontWeight: 700, lineHeight: 1.6, fontFamily: font, textAlign: "left" }}>
-                <div>{selectedCentre.name.replace(" Procurement Centre", "")} · {selectedCentre.distanceKm} km</div>
-                <div>{dates.find((d) => d.value === date)?.label} · {slot.time}</div>
-                <div>{qtl} {t("qtlUnit")}</div>
+                <div>{translateCentreName(selectedCentre.name, lang)} · {fmtNumber(selectedCentre.distanceKm, lang)} km</div>
+                <div>{dates.find((d) => d.value === date)?.label} · {fmtTime(slot.time, lang)}</div>
+                <div>{fmtNumber(qtl, lang)} {t("qtlUnit")}</div>
               </div>
             )}
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>

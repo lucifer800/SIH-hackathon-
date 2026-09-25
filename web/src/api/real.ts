@@ -171,6 +171,7 @@ export const real = {
     return r.messages.map((m) => ({
       id: m.id, category: m.category, channel: String(m.channel).toUpperCase(),
       body: { pa: m.body, hi: m.body, en: m.body }, createdAt: m.createdAt, read: m.read,
+      language: m.language as Lang | undefined,
     }));
   },
   async markRead(id: string) { try { await req(`/messages/${id}/read`, { method: "POST" }); } catch { /* best-effort */ } },

@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Queue as Q } from "../api";
 import { useI18n } from "../i18n/context";
+import { fmtNumber } from "../i18n/format";
 import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
 export function Queue() {
-  const { t, font } = useI18n();
+  const { t, lang, font } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
   const { data: dash, loading, error, refetch } = useQuery(() => api.dashboard("en"), []);
@@ -91,10 +92,10 @@ export function Queue() {
         <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <div className="eyebrow" style={{ marginTop: 6, fontFamily: font }}>{t("liveQueue")}</div>
           <div className="h-display" style={{ marginTop: 10, fontSize: 38, lineHeight: 1.05, fontFamily: font }}>
-            <span style={{ color: "var(--terra)", fontFamily: "var(--font-display)" }}>{q.farmersAhead}</span> {t("tractorsAhead")}
+            <span style={{ color: "var(--terra)", fontFamily: "var(--font-display)" }}>{fmtNumber(q.farmersAhead, lang)}</span> {t("tractorsAhead")}
           </div>
           <div style={{ marginTop: 8, fontSize: 16, fontWeight: 700, color: "var(--muted)", fontFamily: font }}>
-            {t("estWait")} {q.estimatedWaitMinutes} {t("minutes")} · {t("youAreHere")} #{String(mySeq).padStart(3, "0")}
+            {t("estWait")} {fmtNumber(q.estimatedWaitMinutes, lang)} {t("minutes")} · {t("youAreHere")} #{fmtNumber(mySeq, lang, { minimumIntegerDigits: 3 })}
           </div>
 
           <Lane total={total} served={served} mySeq={mySeq} youLabel={t("youAreHere")} />

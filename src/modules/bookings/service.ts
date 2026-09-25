@@ -222,6 +222,18 @@ export async function book(input: BookInput): Promise<BookResult> {
     },
   });
 
+  // Create alert/message record for Alerts page so user sees confirmation in-app
+  await db.insert(t.messages).values({
+    userId: input.userId,
+    channel: "sms",
+    templateId: "booking_confirmed",
+    language: user!.language,
+    category: "booking",
+    body: `बुकिंग की पुष्टि: ${centreName}, ${fmtDate(booking.date)}, ${fmtWindow(window.start, window.end)}, गेट OTP: ${gateOtp}`,
+    status: "sent",
+    sentAt: new Date(),
+  });
+
   return {
     booking: toPublic(booking, centreName, window.start, window.end),
     ...(env.NODE_ENV !== "production" ? { gateOtp } : {}),
