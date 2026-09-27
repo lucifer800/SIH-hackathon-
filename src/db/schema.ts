@@ -454,6 +454,21 @@ export const priceAlerts = pgTable("price_alerts", {
   index("price_alerts_user_idx").on(t.userId, t.active),
 ]);
 
+export const listings = pgTable("listings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  crop: text("crop").notNull(),
+  qtl: numeric("qtl", { precision: 8, scale: 2 }).notNull(),
+  askingPrice: numeric("asking_price", { precision: 10, scale: 2 }).notNull(),
+  village: text("village").notNull(),
+  district: text("district").notNull(),
+  status: text("status").notNull().default("active"), // active | sold | expired
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("listings_crop_district_idx").on(t.crop, t.district, t.status),
+]);
+
 export const refreshTokens = pgTable("refresh_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

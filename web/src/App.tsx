@@ -12,6 +12,7 @@ const Rates = lazy(() => import("./screens/Rates").then(m => ({ default: m.Rates
 const Alerts = lazy(() => import("./screens/Alerts").then(m => ({ default: m.Alerts })));
 const Voice = lazy(() => import("./screens/Voice").then(m => ({ default: m.Voice })));
 const Records = lazy(() => import("./screens/Records").then(m => ({ default: m.Records })));
+const Listings = lazy(() => import("./screens/Listings").then(m => ({ default: m.Listings })));
 
 const AdminApp = lazy(() => import("./admin/AdminApp").then(m => ({ default: m.AdminApp })));
 
@@ -47,6 +48,7 @@ export function App() {
           <Route path="/alerts" element={<RequireAuth><Suspense fallback={<div />}><Alerts /></Suspense></RequireAuth>} />
           <Route path="/voice" element={<RequireAuth><Suspense fallback={<div />}><Voice /></Suspense></RequireAuth>} />
           <Route path="/records" element={<RequireAuth><Suspense fallback={<div />}><Records /></Suspense></RequireAuth>} />
+          <Route path="/listings" element={<RequireAuth><Suspense fallback={<div />}><Listings /></Suspense></RequireAuth>} />
           <Route path="*" element={<Navigate to={api.isAuthed() ? "/home" : "/login"} replace />} />
         </Routes>
       </PhoneFrame>

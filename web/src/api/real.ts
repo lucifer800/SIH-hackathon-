@@ -228,4 +228,20 @@ export const real = {
   async deleteAlert(id: string) {
     await req(`/rates/alert/${id}`, { method: "DELETE" });
   },
+
+  /* ---- Produce listing board ---- */
+  async getListings(crop?: string) {
+    const qs = crop ? `?crop=${encodeURIComponent(crop)}` : "";
+    const r = await req<{ listings: any[] }>(`/listings${qs}`);
+    return r.listings;
+  },
+  async postListing(body: { crop: string; qtl: number; askingPrice: number; village: string; district: string }) {
+    return req<{ id: string; crop: string; qtl: number; askingPrice: number }>("/listings", { method: "POST", body });
+  },
+  async markListingSold(id: string) {
+    await req(`/listings/${id}/sold`, { method: "PATCH" });
+  },
+  async deleteListing(id: string) {
+    await req(`/listings/${id}`, { method: "DELETE" });
+  },
 };

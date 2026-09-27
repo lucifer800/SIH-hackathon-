@@ -48,6 +48,7 @@ const TABS = [
   { to: "/home", key: "tabHome" },
   { to: "/book", key: "tabBook" },
   { to: "/rates", key: "tabRates" },
+  { to: "/listings", key: "tabListings" },
   { to: "/alerts", key: "tabAlerts" },
 ] as const;
 
