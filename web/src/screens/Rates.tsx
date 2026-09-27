@@ -4,16 +4,21 @@ import { useI18n } from "../i18n/context";
 import { fmtNumber } from "../i18n/format";
 import { translateCentreName } from "../i18n/centreNames";
 import { useQuery } from "../hooks/useQuery";
-import { StatusBar, ScreenBody, TabBar } from "../ui";
+import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
 const CROP_KEYS = ["Wheat", "Paddy", "Maize"] as const;
 const CROP_I18N: Record<string, string> = { Wheat: "cropWheat", Paddy: "cropPaddy", Maize: "cropMaize" };
 
 export function Rates() {
   const { t, lang, font } = useI18n();
+  const toast = useToast();
   const [crop, setCrop] = useState<string>("Wheat");
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [alertTarget, setAlertTarget] = useState("");
+  const [alertSaving, setAlertSaving] = useState(false);
   const { data: r, loading, error, refetch } = useQuery(() => api.rates(crop), [crop]);
+  const { data: alerts, refetch: refetchAlerts } = useQuery(() => api.getAlerts(), []);
+  const activeAlert = alerts?.find((a) => a.crop === crop);
 
   const displayedPrice = r && selectedDayIndex !== null && r.trend[selectedDayIndex] ? r.trend[selectedDayIndex].value : r?.today;
 
@@ -50,7 +55,12 @@ export function Rates() {
                   {r.delta >= 0 ? "▲" : "▼"} ₹{fmtNumber(Math.abs(r.delta), lang)} {t("thisWeek")}
                 </div>
               </div>
-              <div style={{ marginTop: 4, fontSize: 14.5, fontWeight: 700, color: "var(--muted)", fontFamily: font }}>{t("mspLabel")} {t("perQuintal")}</div>
+              <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: "var(--muted)", fontFamily: font }}>{t("mspLabel")} {t("perQuintal")}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: r.source === "data.gov.in" ? "var(--leaf)" : "rgba(30,59,35,.12)", color: r.source === "data.gov.in" ? "#fff" : "var(--muted)" }}>
+                  {r.source === "data.gov.in" ? "● LIVE" : "DEMO"}
+                </span>
+              </div>
 
               <Chart trend={r.trend} selectedDayIndex={selectedDayIndex} onDaySelect={setSelectedDayIndex} />
 
@@ -64,7 +74,39 @@ export function Rates() {
                 ))}
               </div>
 
-              <div style={{ marginTop: "auto", padding: "16px 20px", borderRadius: 24, background: "var(--amber-soft)", fontSize: 14, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font }}>
+              <div style={{ marginTop: 20, padding: "16px 18px", borderRadius: 24, background: "var(--field)" }}>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".07em", color: "var(--muted)", fontFamily: font, marginBottom: 10 }}>
+                  {activeAlert ? `🔔 ${t("alertSet")} ₹${activeAlert.targetPrice}` : t("setPriceAlert")}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="number" min={0} max={10000} placeholder="₹ / qtl"
+                    value={alertTarget}
+                    onChange={(e) => setAlertTarget(e.target.value)}
+                    style={{ flex: 1, height: 44, borderRadius: 14, border: "2px solid var(--border)", padding: "0 14px", fontSize: 15, fontWeight: 700, background: "#fff", color: "var(--green-ink)" }}
+                  />
+                  <button type="button" disabled={alertSaving || !alertTarget}
+                    onClick={async () => {
+                      const v = Number(alertTarget);
+                      if (!v || v <= 0) return;
+                      setAlertSaving(true);
+                      try { await api.setAlert(crop, v); setAlertTarget(""); refetchAlerts(); toast(t("alertSaved")); }
+                      catch { toast(t("errorRetry")); }
+                      finally { setAlertSaving(false); }
+                    }}
+                    style={{ height: 44, padding: "0 18px", borderRadius: 14, border: 0, background: "var(--green-ink)", color: "#fff", fontSize: 14, fontWeight: 800, fontFamily: font, opacity: alertSaving ? .6 : 1 }}>
+                    {alertSaving ? "…" : t("save")}
+                  </button>
+                  {activeAlert && (
+                    <button type="button" onClick={async () => { await api.deleteAlert(activeAlert.id); refetchAlerts(); }}
+                      style={{ height: 44, width: 44, borderRadius: 14, border: 0, background: "rgba(194,82,31,.1)", color: "var(--terra)", fontSize: 18 }}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16, padding: "16px 20px", borderRadius: 24, background: "var(--amber-soft)", fontSize: 14, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font }}>
                 {r.advice[lang]}
               </div>
             </>

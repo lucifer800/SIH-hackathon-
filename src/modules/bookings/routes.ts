@@ -1,5 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { desc, eq } from "drizzle-orm";
+import { db } from "../../db/client.js";
+import * as t from "../../db/schema.js";
 import { authenticate } from "../../http/auth.js";
 import { withIdempotency } from "../../http/idempotency.js";
 import { book, cancel, reschedule, listBookings } from "./service.js";
@@ -43,5 +46,50 @@ export async function bookingRoutes(app: FastifyInstance) {
   app.post("/api/v1/bookings/:ref/cancel", { preHandler: [authenticate] }, async (request) => {
     const { ref } = z.object({ ref: z.string() }).parse(request.params);
     return cancel(request.auth!.userId, ref);
+  });
+
+  /**
+   * GET /api/v1/journey — farmer's produce journey for their most recent active booking.
+   * Derives stage (1–5) from existing tables; no new columns needed.
+   *   1 Booked  2 Arrived  3 Weighed  4 Payment Processing  5 Paid
+   */
+  app.get("/api/v1/journey", { preHandler: [authenticate] }, async (request) => {
+    const userId = request.auth!.userId;
+
+    const [booking] = await db
+      .select({ id: t.bookings.id, ref: t.bookings.ref, crop: t.bookings.crop, date: t.bookings.date, status: t.bookings.status })
+      .from(t.bookings)
+      .where(eq(t.bookings.userId, userId))
+      .orderBy(desc(t.bookings.createdAt))
+      .limit(1);
+
+    if (!booking) return { journey: null };
+
+    const [lot] = await db
+      .select({ id: t.lots.id, netQtl: t.lots.netQtl, amount: t.lots.amount })
+      .from(t.lots)
+      .where(eq(t.lots.bookingId, booking.id))
+      .limit(1);
+
+    const [payment] = lot
+      ? await db.select({ status: t.payments.status }).from(t.payments).where(eq(t.payments.lotId, lot.id)).limit(1)
+      : [];
+
+    let stage: 1 | 2 | 3 | 4 | 5 = 1;
+    if (payment?.status === "credited") stage = 5;
+    else if (payment) stage = 4;
+    else if (lot) stage = 3;
+    else if (booking.status === "checked_in") stage = 2;
+
+    return {
+      journey: {
+        stage,
+        ref: booking.ref,
+        crop: booking.crop,
+        date: booking.date,
+        netQtl: lot ? Number(lot.netQtl) : null,
+        amount: lot ? Number(lot.amount) : null,
+      },
+    };
   });
 }

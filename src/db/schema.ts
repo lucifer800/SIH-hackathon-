@@ -442,6 +442,18 @@ export const otpRequests = pgTable("otp_requests", {
   index("otp_mobile_idx").on(t.mobile, t.createdAt),
 ]);
 
+/** Farmer sets a target price for a crop; worker sends SMS when any nearby mandi crosses it. */
+export const priceAlerts = pgTable("price_alerts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  crop: text("crop").notNull(),
+  targetPrice: numeric("target_price", { precision: 10, scale: 2 }).notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("price_alerts_user_idx").on(t.userId, t.active),
+]);
+
 export const refreshTokens = pgTable("refresh_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

@@ -19,7 +19,8 @@ export type TemplateId =
   | "payment_failed"
   | "payment_credited"
   | "reschedule_offer"
-  | "welcome";
+  | "welcome"
+  | "price_alert";
 
 export interface TemplateDef {
   id: TemplateId;
@@ -110,6 +111,16 @@ const T = <const>{
       en: "Welcome to KisanQ, {name}. You can now book your slot.",
     },
     vars: ["name"],
+  },
+  price_alert: {
+    id: "price_alert",
+    category: { pa: "ਭਾਅ ਅਲਰਟ", hi: "भाव अलर्ट", en: "Price Alert" },
+    body: {
+      pa: "{crop} ਦਾ ਭਾਅ {mandi} ਮੰਡੀ ਵਿੱਚ ₹{price}/ਕੁਇੰਟਲ ਹੋ ਗਿਆ — ਤੁਹਾਡੀ ਟੀਚਾ ਕੀਮਤ ₹{target} ਪੂਰੀ ਹੋਈ.",
+      hi: "{crop} का भाव {mandi} मंडी में ₹{price}/क्विंटल हुआ — आपका लक्ष्य ₹{target} पूरा हुआ.",
+      en: "{crop} reached ₹{price}/qtl at {mandi} — your target of ₹{target} is met.",
+    },
+    vars: ["crop", "mandi", "price", "target"],
   },
 } satisfies Record<TemplateId, TemplateDef>;
 
