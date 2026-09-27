@@ -43,7 +43,7 @@ export interface Notification {
 export interface RatePoint { day: string; value: number; }
 export interface Rates {
   crop: string; today: number; delta: number; trend: RatePoint[];
-  nearby: { mandi: string; price: number }[]; advice: L10n;
+  nearby: { mandi: string; price: number }[]; advice: L10n; source?: string;
 }
 export interface Dashboard {
   user: User; holding: Holding; appointment: Appointment | null; queue: Queue | null;

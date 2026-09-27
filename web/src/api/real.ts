@@ -191,6 +191,7 @@ export const real = {
       trend: (r.trend ?? []).map((p: any) => ({ day: /^\d{4}-/.test(p.day) ? dayInitial(p.day) : p.day, value: p.value })),
       nearby: r.nearby ?? [],
       advice: { pa: r.advice, hi: r.advice, en: r.advice },
+      source: r.source as string | undefined,
     };
   },
 

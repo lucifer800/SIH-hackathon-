@@ -302,4 +302,9 @@ export const mock = {
     else if (/turn|number|वारी|ਵਾਰੀ|बारी|queue|line/.test(lower)) intent = "turn";
     return { intent, answer: A[intent][lang], audioUrl: null };
   },
+
+  async journey() { return null; },
+  async getAlerts() { return [] as { id: string; crop: string; targetPrice: string }[]; },
+  async setAlert(_crop: string, _targetPrice: number) { return { id: crypto.randomUUID(), crop: _crop, targetPrice: String(_targetPrice) }; },
+  async deleteAlert(_id: string) {},
 };

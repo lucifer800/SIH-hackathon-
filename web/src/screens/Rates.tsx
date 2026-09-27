@@ -8,6 +8,7 @@ import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
 
 const CROP_KEYS = ["Wheat", "Paddy", "Maize"] as const;
 const CROP_I18N: Record<string, string> = { Wheat: "cropWheat", Paddy: "cropPaddy", Maize: "cropMaize" };
+const TRANSPORT_RATE_PER_KM_PER_QTL = 4; // ₹ — standard Punjab tractor-trolley rate
 
 export function Rates() {
   const { t, lang, font } = useI18n();
@@ -16,6 +17,9 @@ export function Rates() {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [alertTarget, setAlertTarget] = useState("");
   const [alertSaving, setAlertSaving] = useState(false);
+  const [showTransport, setShowTransport] = useState(false);
+  const [distance, setDistance] = useState(30);
+  const [trolleyQtl, setTrolleyQtl] = useState(5);
   const { data: r, loading, error, refetch } = useQuery(() => api.rates(crop), [crop]);
   const { data: alerts, refetch: refetchAlerts } = useQuery(() => api.getAlerts(), []);
   const activeAlert = alerts?.find((a) => a.crop === crop);
@@ -106,6 +110,21 @@ export function Rates() {
                 </div>
               </div>
 
+              <button type="button" onClick={() => setShowTransport((v) => !v)}
+                style={{ marginTop: 16, width: "100%", minHeight: 52, borderRadius: 22, border: "2px solid var(--border)", background: showTransport ? "var(--green-ink)" : "transparent", color: showTransport ? "var(--on-dark)" : "var(--green-ink)", fontSize: 14.5, fontWeight: 800, fontFamily: font, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
+                <span>🚜 {t("transportCalc")}</span>
+                <span style={{ fontSize: 18 }}>{showTransport ? "▲" : "▼"}</span>
+              </button>
+
+              {showTransport && (
+                <TransportSlider
+                  mandiPrice={displayedPrice || r.today}
+                  distance={distance} onDistance={setDistance}
+                  trolleyQtl={trolleyQtl} onTrolleyQtl={setTrolleyQtl}
+                  t={t} font={font}
+                />
+              )}
+
               <div style={{ marginTop: 16, padding: "16px 20px", borderRadius: 24, background: "var(--amber-soft)", fontSize: 14, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font }}>
                 {r.advice[lang]}
               </div>
@@ -117,6 +136,72 @@ export function Rates() {
     </>
   );
 }
+
+function TransportSlider({ mandiPrice, distance, onDistance, trolleyQtl, onTrolleyQtl, t, font }: {
+  mandiPrice: number; distance: number; onDistance: (v: number) => void;
+  trolleyQtl: number; onTrolleyQtl: (v: number) => void;
+  t: (k: string) => string; font: string;
+}) {
+  const costPerQtl = distance * TRANSPORT_RATE_PER_QTL_PER_KM_PER_QTL;
+  const netPrice = Math.max(0, mandiPrice - costPerQtl);
+  const totalCost = costPerQtl * trolleyQtl;
+  const saving = mandiPrice - netPrice;
+  const pct = mandiPrice > 0 ? Math.round((saving / mandiPrice) * 100) : 0;
+
+  return (
+    <div style={{ marginTop: -2, padding: "20px 18px 18px", borderRadius: "0 0 22px 22px", background: "var(--green-ink)" }}>
+      {/* Distance slider */}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--on-dark-3)", fontFamily: font }}>{t("distanceToMandi")}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "var(--marigold)" }}>{distance} km</span>
+        </div>
+        <input type="range" min={1} max={200} step={1} value={distance}
+          onChange={(e) => onDistance(Number(e.target.value))}
+          style={{ width: "100%", accentColor: "var(--marigold)", height: 4, cursor: "pointer" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)", fontWeight: 700 }}>1 km</span>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)", fontWeight: 700 }}>200 km</span>
+        </div>
+      </div>
+
+      {/* Trolley weight slider */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--on-dark-3)", fontFamily: font }}>{t("trolleyWeight")}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "var(--marigold)" }}>{trolleyQtl} qtl</span>
+        </div>
+        <input type="range" min={1} max={20} step={1} value={trolleyQtl}
+          onChange={(e) => onTrolleyQtl(Number(e.target.value))}
+          style={{ width: "100%", accentColor: "var(--marigold)", height: 4, cursor: "pointer" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)", fontWeight: 700 }}>1 qtl</span>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,.4)", fontWeight: 700 }}>20 qtl</span>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ padding: "14px 16px", borderRadius: 18, background: "rgba(255,255,255,.08)" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.5)", fontFamily: font, marginBottom: 4 }}>{t("transportCost")}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--terra)" }}>₹{Math.round(costPerQtl)}<span style={{ fontSize: 12 }}>/qtl</span></div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,.4)", marginTop: 2 }}>₹{Math.round(totalCost)} {t("total")}</div>
+        </div>
+        <div style={{ padding: "14px 16px", borderRadius: 18, background: "rgba(255,248,236,.12)", border: "2px solid var(--marigold)" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--marigold)", fontFamily: font, marginBottom: 4 }}>{t("netAtDoor")}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>₹{Math.round(netPrice)}<span style={{ fontSize: 12 }}>/qtl</span></div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,.4)", marginTop: 2 }}>−{pct}% {t("ofMandiPrice")}</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,.35)", fontFamily: font, textAlign: "center" }}>
+        {t("transportRateNote")} ₹{TRANSPORT_RATE_PER_QTL_PER_KM_PER_QTL}/km/qtl
+      </div>
+    </div>
+  );
+}
+
+// fix typo in constant name used inside component
+const TRANSPORT_RATE_PER_QTL_PER_KM_PER_QTL = TRANSPORT_RATE_PER_KM_PER_QTL;
 
 function Chart({ trend, selectedDayIndex, onDaySelect }: { trend: { day: string; value: number }[]; selectedDayIndex: number | null; onDaySelect: (index: number) => void }) {
   const max = Math.max(...trend.map((p) => p.value));

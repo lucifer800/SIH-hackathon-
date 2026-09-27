@@ -11,7 +11,7 @@ export function Alerts() {
   const { t, lang, font } = useI18n();
   const toast = useToast();
   const { data: items, loading, error, refetch } = useQuery(() => api.notifications(), []);
-  const { data: journey } = useQuery(() => api.journey(), []);
+  const { data: journey } = useQuery(() => api.journey() as Promise<{ stage: 1|2|3|4|5; crop: string; netQtl: number|null; amount: number|null } | null>, []);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [playingId, setPlayingId] = useState<string | null>(null);
   const queueRef = useRef<string[]>([]);
