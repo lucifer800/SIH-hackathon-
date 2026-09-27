@@ -209,4 +209,22 @@ export const real = {
     const r = await req<{ intent: string; answer: string; audioUrl: string | null }>("/assist/ask", { method: "POST", body: { text, language: lang } });
     return { intent: r.intent as any, answer: r.answer, audioUrl: r.audioUrl };
   },
+
+  /* ---- Produce journey: stage 1–5 for the farmer's most recent booking ---- */
+  async journey() {
+    const r = await req<{ journey: { stage: 1|2|3|4|5; ref: string; crop: string; date: string; netQtl: number|null; amount: number|null } | null }>("/journey");
+    return r.journey;
+  },
+
+  /* ---- Price alerts: farmer sets a target price per crop; SMS fires once ---- */
+  async setAlert(crop: string, targetPrice: number) {
+    return req<{ id: string; crop: string; targetPrice: string }>("/rates/alert", { method: "POST", body: { crop, targetPrice } });
+  },
+  async getAlerts() {
+    const r = await req<{ alerts: { id: string; crop: string; targetPrice: string }[] }>("/rates/alerts");
+    return r.alerts;
+  },
+  async deleteAlert(id: string) {
+    await req(`/rates/alert/${id}`, { method: "DELETE" });
+  },
 };

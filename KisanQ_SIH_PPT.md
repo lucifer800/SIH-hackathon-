@@ -1,7 +1,8 @@
-# SMART INDIA HACKATHON 2025
+# SMART INDIA HACKATHON 2026
 
-**Problem Statement ID:** SIH26032
-**Problem Statement Title:** Farmers often face long waiting times, lack of information regarding procurement schedules, and uncertainty about procurement status
+**Problem Statement ID:** 26193
+**Problem Statement Title:** Student Innovation — Developing solutions to enhance the primary sector of India (Agriculture) and to manage and process agricultural produce
+**Organisation:** AICTE — MIC Student Innovation
 **Theme:** Agriculture, FoodTech & Rural Development
 **PS Category:** Software
 **Team ID:** 3
@@ -12,28 +13,43 @@
 ## Idea Title
 
 ### Proposed Solution
-**KisanQ** — one platform for the farmer's whole trip to the procurement centre: sign in once with a mobile OTP, book a capacity-bound slot, follow a live token queue with a real ETA, and track quality → weight → receipt → DBT payment on a single timeline. **SMS and IVR first; the app is the enhancement.**
+**KisanQ** — a Smart Agriculture Produce Management Platform that covers the farmer's entire journey: from checking live mandi prices at home, to booking a capacity-bound slot, to following a live token queue with a real ETA, to tracking the produce's journey (weighed → graded → payment) on a single timeline — all via SMS, IVR, or the app. **Feature-phone first, in the farmer's own language.**
 
 Farmer PWA · SMS reply "1" · missed-call IVR — works on a feature phone, in the farmer's language (Punjabi / Hindi / English).
 
-**Flow:** 1. Sign in → 2. Book slot → 3. Gate check-in (OTP + vehicle) → 4. Live queue → 5. Weigh & receipt → 6. Get paid
+**End-to-end flow:**
+1. **Check rates** — live mandi prices from Agmarknet; decide *where* to sell before leaving home
+2. **Book slot** — capacity-bound 2-hour window; SMS confirms with gate OTP
+3. **Gate check-in** — OTP + vehicle number; token issued instantly
+4. **Live queue** — real token position & ETA; "5 away" SMS alert
+5. **Produce journey** — tracker shows Booked → Arrived → Weighed → Payment Processing → Paid
+6. **Get paid** — DBT directly to bank; failure reason in plain language if it falls through
 
-### How it addresses the problem
-- **Everyone arrives on day one** → capacity-bound 2-hour slots with a trolley and quintal quota per window; **15% held back** for walk-ins and re-bookings, **30% reserved** for holdings under 2 ha until 24 h before.
-- **No idea when the turn will come** → live token position and ETA on SMS/app, a "5 tokens away" alert, and an unauthenticated display board at the gate.
-- **Payment is a black box** → one lot timeline: booked → checked-in → served → weighed → receipt → DBT initiated → **credited / failed**, with the failure reason in plain words, in the farmer's language.
-- **Centre has no forecast** → offline operator console plus a district dashboard of bookings against bags, storage, and lorries, with payment-pendency ageing against the 48-hour promise.
+### How it addresses the problem statement (SIH26193)
+The AICTE PS asks for solutions that **enhance agriculture** and **manage/process agricultural produce**. KisanQ addresses both:
+
+- **Enhance agriculture:** Live Agmarknet mandi rates in Hindi/Punjabi help farmers decide *which* mandi gives the best price before loading the tractor — reducing distress sales below MSP.
+- **Manage agricultural produce:** End-to-end digital tracking from slot booking through weighment, quality grading, and DBT payment — replacing paper tokens, verbal updates, and phone calls with a transparent, auditable digital trail.
+- **Process produce:** Weighment and quality data (moisture%, net qtl, variety) are captured digitally at the centre and immutably stored; operators can't change a receipt after it is issued.
 
 ### Current Situation vs. With KisanQ
 | Current Situation | With KisanQ |
 |---|---|
+| Farmer doesn't know mandi prices before travelling | Live Agmarknet rates — check at home, choose the best mandi |
 | Long unpredictable queues | Scheduled, capacity-bound time-slot booking |
 | No visibility of procurement schedule | Real-time token position & wait-time ETA |
 | Manual paper tokens | Digital token issued at the gate (OTP + vehicle) |
-| Uncertainty about payment status | Live 6-state payment tracking via SMS / app |
-| Wasted farmer time & fuel | Slot windows flatten the dawn rush |
+| No visibility of produce status after drop-off | 5-stage produce journey tracker (Booked→Arrived→Weighed→Processing→Paid) |
+| Uncertainty about payment status | Live payment tracking via SMS / app with plain-language failure reasons |
+| Wasted farmer time & fuel | Slot windows + pre-trip rate check flatten the dawn rush |
 
 ### Innovation and Uniqueness of the Solution
+
+**New in this version (aligned to SIH26193):**
+- **Live Agmarknet Rate Board** — pulls real mandi prices from data.gov.in's Agmarknet feed (free govt API, no third-party dependency); a "LIVE / DEMO" badge shows data freshness. The backend advice engine computes whether the extra travel to a higher-priced mandi is worth it on a 25-qtl load (gap × qtl vs. estimated travel cost) — decision help, not raw data.
+- **5-Stage Produce Journey Tracker** — derived from existing DB tables (bookings → tokens → lots → payments) without any new DB columns. The tracker is shown on the Alerts screen in the farmer's language and works entirely offline for operators.
+
+**Core platform innovations (unchanged):**
 - **Capacity = min(weighbridge, gunny bags × 0.5 qtl, godown headroom)** — bags run out long before the weighbridge does; other systems only count the weighbridge. *(Implemented as the slot-generation rule.)*
 - **Queue sorted by slot window, then check-in time** — reaching the gate at 3 AM buys nothing, so the dawn rush disappears. Arriving late puts you at the back of *your own* window, never the back of the day.
 - **ETA from a rolling mean of the last 20 lots** at that centre, re-computed on every weighment — not a fixed guess.
@@ -51,7 +67,7 @@ Farmer PWA · SMS reply "1" · missed-call IVR — works on a feature phone, in 
 - **Backend:** Node.js + **Fastify** REST API (TypeScript), **PostgreSQL 16** (transactional, row-locked booking), **Redis**, **SSE** for the live queue and gate board, background **worker** for SMS + reconciliation.
 - **Slot engine:** capacity = min(lanes × hours ÷ service time, gunny bags × 0.5 qtl, godown headroom); reserve and small-holder pools release at T-24h.
 - **Auth:** **mobile OTP** (E.164, hashed codes, attempt-limited, rotating refresh token with family revocation). Aadhaar / land record modeled as an **opaque entitlement source** — real eKYC needs an AUA/KUA licence, so the number stays a reference and the entitlement logic is real behind it.
-- **Integrations (adapter seams):** SMS/IVR gateway (**MSG91** DLT driver built; stub driver for demo), **DBT–PFMS** payment status via a bank return-file reconciliation worker, **e-NAM / data.gov.in** mandi rates ingest.
+- **Integrations (adapter seams):** SMS/IVR gateway (**MSG91** DLT driver built; stub driver for demo), **DBT–PFMS** payment status via a bank return-file reconciliation worker, **Agmarknet / data.gov.in** live mandi rates (free govt API; seeded fallback when key absent).
 - **Admin:** district dashboard — utilisation, bag / storage warnings, payment pendency; a full admin console over every entity (farmers, centres, bookings, queue, lots, payments, messages, rates, disruptions, grievances, audit log).
 - **Hardware:** one tablet and one TV board per centre; nothing new for the farmer to buy.
 
@@ -59,7 +75,7 @@ Farmer PWA · SMS reply "1" · missed-call IVR — works on a feature phone, in 
 - **User Layer:** Farmer PWA (vernacular UI), Feature Phone (SMS / IVR), Operator console (offline-first), District & Admin dashboards (web).
 - **API / Backend Layer:** Auth service (mobile OTP), Slot booking & queue engine (server-authoritative, sole writer of bookings and tokens), Notification service (SMS / IVR / push — every message persisted), Payment tracking & reconciliation, Disruption / reschedule engine, Grievance service.
 - **Data Layer:** PostgreSQL (14 tables — users, holdings, centres, centre_days, slots, bookings, tokens, service_events, lots, payments, messages, rates, grievances, audit_log …), Redis (rate limits, live queue fan-out, job queue).
-- **External Integrations:** SMS/IVR gateway (MSG91), PFMS (MSP disbursal status), e-NAM / data.gov.in (mandi prices).
+- **External Integrations:** SMS/IVR gateway (MSG91), PFMS (MSP disbursal status), Agmarknet / data.gov.in (live mandi prices — free govt API).
 
 ### Methodology and Process for Implementation
 **Farmer flow:** Harvest ready → Book slot (SMS gate-OTP received) → Reach gate, check-in with OTP + vehicle number → Token issued → Wait for token call ("5 away" SMS) → Hand over produce → Weigh & grade → (Rejected → rejection SMS) OR (Receipt → DBT initiated → credited / failed + fix).
@@ -86,9 +102,11 @@ Farmer PWA · SMS reply "1" · missed-call IVR — works on a feature phone, in 
 - ✅ **Capacity-safe booking** — transactional row lock; the 50-request / 10-seat concurrency test passes.
 - ✅ **Gate check-in → token → live queue → ETA → SSE board**, "ring my phone" watcher.
 - ✅ **Lots → immutable receipt → DBT payment state machine → bank return-file reconciliation** with plain-language failure reasons.
-- ✅ **Rates, voice assist (turn / money / rate intents), district read-models, disruption + reschedule engine, offline operator sync, grievances tied to a lot ID.**
+- ✅ **Live Agmarknet Rate Board** — `GET /api/v1/rates` pulls from data.gov.in when `DATA_GOV_API_KEY` is set; seeded fallback otherwise. "LIVE / DEMO" badge on the farmer app. Decision-help advice engine built and tested.
+- ✅ **5-Stage Produce Journey Tracker** — `GET /api/v1/journey` derives stage from existing tables (no new DB columns); displayed on the Alerts screen in all three languages with a step-progress bar.
+- ✅ **Voice assist (turn / money / rate intents), district read-models, disruption + reschedule engine, offline operator sync, grievances tied to a lot ID.**
 - ✅ **19 backend test files**; farmer PWA (8 screens) + admin console.
-- 🔜 **Remaining for production:** point the farmer PWA at the live API (auth + booking underway), a real MSG91 authkey + DLT-approved templates for physical SMS delivery, and the PFMS / e-NAM production credentials.
+- 🔜 **Remaining for production:** a real MSG91 authkey + DLT-approved templates for physical SMS delivery, `DATA_GOV_API_KEY` from data.gov.in for live Agmarknet prices, and PFMS production credentials for DBT reconciliation.
 
 ---
 
@@ -123,12 +141,13 @@ Karnal district, 15 Oct 2024 — 1,73,146 MT of procured paddy still lying in th
 ## Impact and Benefits
 
 ### Potential Impact on the Target Audience
+- **Before leaving home:** live Agmarknet prices in Hindi/Punjabi — farmer chooses the best mandi instead of driving blind
 - **2–5 days → under 90 min:** wait at the centre — no more sleeping beside the trolley
 - **3.8× → 1.3×:** peak-to-average arrivals once slots spread the demand
-- **Silent → tracked:** payment status; failure reason surfaced within 24 h
-- **0 → 100%:** farmers who know their turn before leaving home
+- **Silent → tracked:** 5-stage produce journey visible on the phone; payment failure reason surfaced within 24 h
+- **0 → 100%:** farmers who know their turn, their produce status, and their payment stage — before leaving home and after dropping off
 
-**Impact of KisanQ (four dimensions):** Governance (real-time data for policy decisions), Social (reduced stress, greater trust), Economic (saved time, faster payments), Environmental (less fuel waste, less paper use)
+**Impact of KisanQ (four dimensions):** Governance (real-time data for policy decisions), Social (reduced stress, greater trust), Economic (saved time, faster payments, no distress sales below MSP), Environmental (less fuel waste, less paper use)
 
 ### Why It Matters — From the Ground
 - Medak, 29 May 2026 — his serial number was 115; the centre had reached 88 after several days. He had a number, but no ETA (Telangana Today).

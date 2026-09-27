@@ -11,6 +11,7 @@ export function Alerts() {
   const { t, lang, font } = useI18n();
   const toast = useToast();
   const { data: items, loading, error, refetch } = useQuery(() => api.notifications(), []);
+  const { data: journey } = useQuery(() => api.journey(), []);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [playingId, setPlayingId] = useState<string | null>(null);
   const queueRef = useRef<string[]>([]);
@@ -83,6 +84,8 @@ export function Alerts() {
             {t("alertsSaved")}
           </p>
 
+          {journey && <JourneyBanner stage={journey.stage} crop={journey.crop} netQtl={journey.netQtl} amount={journey.amount} t={t} font={font} />}
+
           {error ? (
             <ErrorCard message={t("errorRetry")} onRetry={refetch} retryLabel={t("retry")} />
           ) : loading ? (
@@ -150,6 +153,47 @@ function EmptyCard({ message, font }: { message: string; font: string }) {
   return (
     <div style={{ margin: "auto 0", padding: "26px 22px", borderRadius: 26, background: "var(--amber-soft)", fontSize: 15.5, fontWeight: 700, lineHeight: 1.55, color: "var(--amber-text-2)", fontFamily: font, textAlign: "center" }}>
       {message}
+    </div>
+  );
+}
+
+const STAGE_ICONS = ["📋", "🚜", "⚖️", "⏳", "✅"] as const;
+
+function JourneyBanner({ stage, crop, netQtl, amount, t, font }: {
+  stage: 1|2|3|4|5; crop: string; netQtl: number|null; amount: number|null;
+  t: (k: string) => string; font: string;
+}) {
+  const STAGES = [t("jStage1"), t("jStage2"), t("jStage3"), t("jStage4"), t("jStage5")];
+  return (
+    <div style={{ marginBottom: 18, padding: "18px 18px 14px", borderRadius: 26, background: "var(--green-ink)" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", color: "var(--marigold)", fontFamily: font, marginBottom: 12 }}>
+        {t("journeyTitle")} · {crop}
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 0 }}>
+        {STAGES.map((label, i) => {
+          const done = stage > i + 1;
+          const active = stage === i + 1;
+          return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+              {i > 0 && (
+                <div style={{ position: "absolute", top: 13, right: "50%", width: "100%", height: 2, background: done ? "var(--leaf)" : "rgba(255,255,255,.15)", zIndex: 0 }} />
+              )}
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? "var(--leaf)" : active ? "var(--marigold)" : "rgba(255,255,255,.15)", display: "grid", placeItems: "center", fontSize: 13, zIndex: 1, position: "relative", border: active ? "2px solid #fff" : "none" }}>
+                {done ? "✓" : STAGE_ICONS[i]}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 10.5, fontWeight: 800, color: active ? "#fff" : done ? "var(--on-dark-3)" : "rgba(255,255,255,.4)", textAlign: "center", fontFamily: font, lineHeight: 1.2 }}>
+                {label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {(netQtl != null || amount != null) && (
+        <div style={{ marginTop: 12, display: "flex", gap: 16 }}>
+          {netQtl != null && <span style={{ fontSize: 13, fontWeight: 800, color: "var(--on-dark-3)" }}>{netQtl} qtl</span>}
+          {amount != null && <span style={{ fontSize: 13, fontWeight: 800, color: "var(--on-dark-3)" }}>₹{amount.toLocaleString()}</span>}
+        </div>
+      )}
     </div>
   );
 }

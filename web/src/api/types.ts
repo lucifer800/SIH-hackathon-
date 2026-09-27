@@ -268,6 +268,7 @@ export interface RateView {
   trend: { day: string; value: number }[];
   nearby: { mandi: string; price: number }[];
   advice: string;
+  source?: string;
 }
 
 /** POST /assist/ask — voice assist (Sunrise 07). audioUrl is null until Bhashini TTS is wired. */

@@ -3,6 +3,7 @@ import { db } from "../../db/client.js";
 import * as t from "../../db/schema.js";
 import { WHEAT_MSP } from "../../domain/payments.js";
 import { istDate, addDays } from "../../domain/capacity.js";
+import { env } from "../../env.js";
 
 /**
  * Crop rates — the price that decides whether the trip is worth it (Sunrise 05).
@@ -26,6 +27,7 @@ export interface RateView {
   trend: { day: string; value: number }[];
   nearby: { mandi: string; price: number }[];
   advice: string;
+  source: string;
 }
 
 /** Seeds a week of believable rates for a district's mandis. Idempotent per day. */
@@ -54,15 +56,62 @@ export async function seedRates(district = "Ludhiana", crops = ["Wheat", "Paddy"
   return { inserted };
 }
 
+// Agmarknet commodity name → our canonical crop key
+const COMMODITY_MAP: Record<string, string> = {
+  wheat: "Wheat",
+  paddy: "Paddy",
+  "paddy(dushen)": "Paddy",
+  "paddy(common)": "Paddy",
+  maize: "Maize",
+};
+
 /**
- * If DATA_GOV_API_KEY is set, this is where the real Agmarknet pull goes. Kept as
- * a named seam so L5 can flip to live data without touching the route or the view.
+ * Pulls today's mandi prices from data.gov.in Agmarknet feed and upserts them.
+ * Falls back to seeded data when DATA_GOV_API_KEY is not set.
+ * Resource: 9ef84268-d588-465a-a308-a864a43d0070 (Daily Market Prices)
  */
 export async function ingestFromDataGov(): Promise<{ inserted: number; source: string }> {
-  // Real implementation: fetch https://api.data.gov.in/resource/<agmarknet>?api-key=...
-  // parse commodity/market/modal_price, upsert into `rates`. Deferred to a live key.
-  const r = await seedRates();
-  return { inserted: r.inserted, source: "seed (set DATA_GOV_API_KEY for live Agmarknet)" };
+  if (!env.DATA_GOV_API_KEY) {
+    const r = await seedRates();
+    return { inserted: r.inserted, source: "seed (set DATA_GOV_API_KEY for live Agmarknet)" };
+  }
+
+  const url =
+    `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070` +
+    `?api-key=${env.DATA_GOV_API_KEY}&format=json` +
+    `&filters[state.keyword]=Punjab&limit=100`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Agmarknet fetch failed: ${res.status}`);
+  const json = await res.json() as { records?: Record<string, string>[] };
+  const records = json.records ?? [];
+
+  let inserted = 0;
+  for (const rec of records) {
+    const crop = COMMODITY_MAP[(rec["commodity"] ?? "").toLowerCase()];
+    if (!crop) continue;
+
+    // arrival_date comes as DD/MM/YYYY
+    const [dd, mm, yyyy] = (rec["arrival_date"] ?? "").split("/");
+    if (!dd || !mm || !yyyy) continue;
+    const date = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+
+    const modalPrice = rec["modal_price"]?.replace(/,/g, "");
+    if (!modalPrice || isNaN(Number(modalPrice))) continue;
+
+    await db.insert(t.rates).values({
+      crop,
+      mandi: rec["market"] ?? "Unknown",
+      district: rec["district"] ?? "Unknown",
+      date,
+      msp: String(MSP[crop] ?? 2000),
+      modalPrice,
+      source: "data.gov.in",
+    }).onConflictDoNothing();
+    inserted++;
+  }
+
+  return { inserted, source: "data.gov.in/Agmarknet" };
 }
 
 export async function ratesFor(crop: string, homeMandi?: string): Promise<RateView> {
@@ -106,7 +155,8 @@ export async function ratesFor(crop: string, homeMandi?: string): Promise<RateVi
     .map((r) => ({ mandi: r.mandi, price: Number(r.modalPrice) }))
     .sort((a, b) => b.price - a.price);
 
-  return { crop, today, msp, delta, trend, nearby, advice: buildAdvice(crop, today, msp, nearby, homeMandi) };
+  const source = rows[0]?.source ?? "seed";
+  return { crop, today, msp, delta, trend, nearby, advice: buildAdvice(crop, today, msp, nearby, homeMandi), source };
 }
 
 /** Decision help, not raw data: is a higher mandi worth the travel? */
