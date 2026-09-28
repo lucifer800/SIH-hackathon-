@@ -15,7 +15,7 @@ export const AUTH_POLICY = {
   codeDigits: 4,              // matches the four OTP boxes in the Sunrise design
   codeTtlMinutes: 5,
   maxAttempts: 5,
-  requestsPerHourPerMobile: process.env.NODE_ENV === "production" ? 3 : 50,
+  requestsPerHourPerMobile: env.NODE_ENV === "development" ? 50 : 3,
   resendAfterSeconds: 30,
   accessTtlMinutes: 15,
   refreshTtlDays: 60,         // a farmer books twice a season; do not log them out
@@ -36,6 +36,7 @@ export interface OtpRequestResult {
 
 export async function requestOtp(rawMobile: string): Promise<OtpRequestResult> {
   const mobile = normaliseMobile(rawMobile);
+  const code = numericCode(AUTH_POLICY.codeDigits);
 
   // 3 per hour per mobile. Counted from rows, not from Redis, so the limit holds
   // across restarts and across instances without extra infrastructure.
@@ -50,14 +51,12 @@ export async function requestOtp(rawMobile: string): Promise<OtpRequestResult> {
     );
 
   if ((recent?.count ?? 0) >= AUTH_POLICY.requestsPerHourPerMobile) {
-    const devCode = numericCode(AUTH_POLICY.codeDigits);
     throw tooManyRequests(
       "Too many codes requested. Please try again in an hour, or ask for help at your panchayat.",
       { retryAfterMinutes: 60 },
     );
   }
 
-  const code = numericCode(AUTH_POLICY.codeDigits);
   const [row] = await db
     .insert(t.otpRequests)
     .values({
@@ -90,6 +89,7 @@ export async function requestOtp(rawMobile: string): Promise<OtpRequestResult> {
     requestId: row!.id,
     expiresInSec: AUTH_POLICY.codeTtlMinutes * 60,
     resendAfterSec: AUTH_POLICY.resendAfterSeconds,
+    ...(env.NODE_ENV === "production" ? {} : { devCode: code }),
   };
 }
 
