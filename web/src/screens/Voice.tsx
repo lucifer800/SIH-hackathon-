@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type AssistAnswer } from "../api";
 import { useI18n } from "../i18n/context";
@@ -15,6 +15,14 @@ export function Voice() {
   const [listening, setListening] = useState(false);
   const [answer, setAnswer] = useState<AssistAnswer | null>(null);
   const [heard, setHeard] = useState("");
+  const recognitionRef = useRef<any>(null);
+
+  // A tab change or unmount must not leave the phone talking to itself,
+  // or a mic still listening in the background.
+  useEffect(() => () => {
+    window.speechSynthesis?.cancel();
+    recognitionRef.current?.abort();
+  }, []);
 
   async function ask(text: string) {
     setHeard(text);
@@ -35,6 +43,7 @@ export function Voice() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { setListening(true); setTimeout(() => { setListening(false); ask(t("qTurn")); }, 1400); return; }
     const rec = new SR();
+    recognitionRef.current = rec;
     rec.lang = lang === "pa" ? "pa-IN" : lang === "hi" ? "hi-IN" : "en-IN";
     rec.onresult = (e: any) => {
       rec.abort();
