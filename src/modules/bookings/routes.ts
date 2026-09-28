@@ -6,6 +6,7 @@ import * as t from "../../db/schema.js";
 import { authenticate } from "../../http/auth.js";
 import { withIdempotency } from "../../http/idempotency.js";
 import { book, cancel, reschedule, listBookings } from "./service.js";
+import { deriveJourneyStage } from "../../domain/journey.js";
 
 const bookBody = z.object({
   slotId: z.string().uuid(),
@@ -75,11 +76,7 @@ export async function bookingRoutes(app: FastifyInstance) {
       ? await db.select({ status: t.payments.status }).from(t.payments).where(eq(t.payments.lotId, lot.id)).limit(1)
       : [];
 
-    let stage: 1 | 2 | 3 | 4 | 5 = 1;
-    if (payment?.status === "credited") stage = 5;
-    else if (payment) stage = 4;
-    else if (lot) stage = 3;
-    else if (booking.status === "checked_in") stage = 2;
+    const stage = deriveJourneyStage({ bookingStatus: booking.status, hasLot: !!lot, paymentStatus: payment?.status });
 
     return {
       journey: {

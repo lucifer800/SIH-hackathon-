@@ -8,7 +8,7 @@ import { Home } from "./screens/Home";
 
 const Queue = lazy(() => import("./screens/Queue").then(m => ({ default: m.Queue })));
 const Book = lazy(() => import("./screens/Book").then(m => ({ default: m.Book })));
-const Rates = lazy(() => import("./screens/Rates").then(m => ({ default: m.Rates })));
+const Market = lazy(() => import("./screens/Market").then(m => ({ default: m.Market })));
 const Alerts = lazy(() => import("./screens/Alerts").then(m => ({ default: m.Alerts })));
 const Voice = lazy(() => import("./screens/Voice").then(m => ({ default: m.Voice })));
 const Records = lazy(() => import("./screens/Records").then(m => ({ default: m.Records })));
@@ -43,7 +43,9 @@ export function App() {
           <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
           <Route path="/queue" element={<RequireAuth><Suspense fallback={<div />}><Queue /></Suspense></RequireAuth>} />
           <Route path="/book" element={<RequireAuth><Suspense fallback={<div />}><Book /></Suspense></RequireAuth>} />
-          <Route path="/rates" element={<RequireAuth><Suspense fallback={<div />}><Rates /></Suspense></RequireAuth>} />
+          <Route path="/market" element={<RequireAuth><Suspense fallback={<div />}><Market /></Suspense></RequireAuth>} />
+          <Route path="/rates" element={<Navigate to="/market" replace />} />
+          <Route path="/listings" element={<Navigate to="/market" replace />} />
           <Route path="/alerts" element={<RequireAuth><Suspense fallback={<div />}><Alerts /></Suspense></RequireAuth>} />
           <Route path="/voice" element={<RequireAuth><Suspense fallback={<div />}><Voice /></Suspense></RequireAuth>} />
           <Route path="/records" element={<RequireAuth><Suspense fallback={<div />}><Records /></Suspense></RequireAuth>} />

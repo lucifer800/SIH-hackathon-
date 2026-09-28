@@ -302,4 +302,22 @@ export const mock = {
     else if (/turn|number|वारी|ਵਾਰੀ|बारी|queue|line/.test(lower)) intent = "turn";
     return { intent, answer: A[intent][lang], audioUrl: null };
   },
+
+  async journey() { return null; },
+
+  /* ---- Produce listing board ---- */
+  async getListings(_crop?: string) {
+    return [
+      { id: "1", crop: "Wheat", qtl: 40, askingPrice: 2450, village: "Nabha", district: "Patiala", createdAt: new Date().toISOString(), farmerName: "Gurpreet Singh", farmerMobile: "98765XXXXX" },
+      { id: "2", crop: "Paddy", qtl: 25, askingPrice: 2100, village: "Moonak", district: "Sangrur", createdAt: new Date(Date.now() - 86_400_000).toISOString(), farmerName: "Balvir Kumar", farmerMobile: "97654XXXXX" },
+    ];
+  },
+  async postListing(body: { crop: string; qtl: number; askingPrice: number; village: string; district: string }) {
+    return { id: crypto.randomUUID(), ...body };
+  },
+  async markListingSold(_id: string) {},
+  async deleteListing(_id: string) {},
+  async getAlerts() { return [] as { id: string; crop: string; targetPrice: string }[]; },
+  async setAlert(_crop: string, _targetPrice: number) { return { id: crypto.randomUUID(), crop: _crop, targetPrice: String(_targetPrice) }; },
+  async deleteAlert(_id: string) {},
 };

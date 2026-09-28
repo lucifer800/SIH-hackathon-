@@ -47,7 +47,7 @@ export function StatusBar({ right }: { right?: string }) {
 const TABS = [
   { to: "/home", key: "tabHome" },
   { to: "/book", key: "tabBook" },
-  { to: "/rates", key: "tabRates" },
+  { to: "/market", key: "tabMarket" },
   { to: "/alerts", key: "tabAlerts" },
 ] as const;
 

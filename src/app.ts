@@ -24,6 +24,8 @@ import { grievanceRoutes } from "./modules/grievances/routes.js";
 import { maintenanceRoutes } from "./modules/maintenance/routes.js";
 import { dashboardRoutes } from "./modules/dashboard/routes.js";
 import { priceAlertRoutes } from "./modules/rates/alerts.js";
+import { listingRoutes } from "./modules/listings/routes.js";
+import { weatherRoutes } from "./modules/weather/routes.js";
 import { FAIRNESS_RULES } from "./domain/fairness.js";
 import { IMPACT_TARGETS } from "./domain/impact.js";
 
@@ -148,6 +150,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(maintenanceRoutes);
   await app.register(dashboardRoutes);
   await app.register(priceAlertRoutes);
+  await app.register(listingRoutes);
+  await app.register(weatherRoutes);
 
   app.get("/api/v1/health", async () => ({
     status: "ok",

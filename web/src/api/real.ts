@@ -191,6 +191,7 @@ export const real = {
       trend: (r.trend ?? []).map((p: any) => ({ day: /^\d{4}-/.test(p.day) ? dayInitial(p.day) : p.day, value: p.value })),
       nearby: r.nearby ?? [],
       advice: { pa: r.advice, hi: r.advice, en: r.advice },
+      source: r.source as string | undefined,
     };
   },
 
@@ -226,5 +227,21 @@ export const real = {
   },
   async deleteAlert(id: string) {
     await req(`/rates/alert/${id}`, { method: "DELETE" });
+  },
+
+  /* ---- Produce listing board ---- */
+  async getListings(crop?: string) {
+    const qs = crop ? `?crop=${encodeURIComponent(crop)}` : "";
+    const r = await req<{ listings: any[] }>(`/listings${qs}`);
+    return r.listings;
+  },
+  async postListing(body: { crop: string; qtl: number; askingPrice: number; village: string; district: string }) {
+    return req<{ id: string; crop: string; qtl: number; askingPrice: number }>("/listings", { method: "POST", body });
+  },
+  async markListingSold(id: string) {
+    await req(`/listings/${id}/sold`, { method: "PATCH" });
+  },
+  async deleteListing(id: string) {
+    await req(`/listings/${id}`, { method: "DELETE" });
   },
 };

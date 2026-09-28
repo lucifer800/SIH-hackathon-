@@ -15,6 +15,7 @@ import { env } from "./env.js";
 import { runMaintenance } from "./modules/maintenance/service.js";
 import { ingestFromDataGov } from "./modules/rates/service.js";
 import { checkPriceAlerts } from "./modules/rates/alerts.js";
+import { checkWeatherDisruptions } from "./modules/weather/service.js";
 import { sql } from "./db/client.js";
 
 if (!env.REDIS_URL) {
@@ -46,6 +47,11 @@ const worker = new Worker(
         console.log(`[worker] price-alert-check: fired ${r.fired} SMS`);
         return r;
       }
+      case "weather-check": {
+        const r = await checkWeatherDisruptions();
+        console.log(`[worker] weather-check: checked ${r.checked} centres, triggered ${r.triggered} rain events`);
+        return r;
+      }
       default:
         throw new Error(`Unknown job ${job.name}`);
     }
@@ -60,7 +66,8 @@ async function scheduleRepeatables() {
   await queue.upsertJobScheduler("maintenance-15m", { every: 15 * 60_000 }, { name: "maintenance", opts: { removeOnComplete: 100, removeOnFail: 100 } });
   await queue.upsertJobScheduler("rate-ingest-daily", { pattern: "0 2 * * *", tz: "Asia/Kolkata" }, { name: "rate-ingest", opts: { removeOnComplete: 20, removeOnFail: 20 } });
   await queue.upsertJobScheduler("price-alert-check-daily", { pattern: "30 2 * * *", tz: "Asia/Kolkata" }, { name: "price-alert-check", opts: { removeOnComplete: 20, removeOnFail: 20 } });
-  console.log("[worker] repeatable jobs scheduled: maintenance/15m, rate-ingest @02:00 IST, price-alert-check @02:30 IST");
+  await queue.upsertJobScheduler("weather-check-30m", { every: 30 * 60_000 }, { name: "weather-check", opts: { removeOnComplete: 100, removeOnFail: 100 } });
+  console.log("[worker] repeatable jobs scheduled: maintenance/15m, rate-ingest @02:00 IST, price-alert-check @02:30 IST, weather-check/30m");
 }
 
 await scheduleRepeatables();
