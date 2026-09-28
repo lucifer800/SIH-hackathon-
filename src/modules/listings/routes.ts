@@ -65,7 +65,7 @@ export async function listingRoutes(app: FastifyInstance) {
       .values({ ...body, userId, qtl: String(body.qtl), askingPrice: String(body.askingPrice), expiresAt })
       .returning({ id: t.listings.id, crop: t.listings.crop, qtl: t.listings.qtl, askingPrice: t.listings.askingPrice });
 
-    return reply.status(201).send({ ...created, qtl: Number(created.qtl), askingPrice: Number(created.askingPrice) });
+    return reply.status(201).send({ ...created, qtl: Number(created!.qtl), askingPrice: Number(created!.askingPrice) });
   });
 
   // Auth: mark own listing as sold

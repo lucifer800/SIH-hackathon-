@@ -15,6 +15,7 @@ const MSG91_TEMPLATE_IDS: Record<TemplateId, string> = {
   payment_credited: "6aa7bf15d24211ecd7004644",
   reschedule_offer: "6aa7bf15d24211ecd7004644",
   welcome: "6aa7bf15d24211ecd7004644",
+  price_alert: "6aa7bf15d24211ecd7004644",
 };
 
 /**
