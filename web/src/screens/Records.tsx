@@ -9,7 +9,7 @@ import { StatusBar, ScreenBody, TabBar, money } from "../ui";
 export function Records() {
   const { t, lang, font } = useI18n();
   const nav = useNavigate();
-  const { data: items, loading, error, refetch } = useQuery(() => api.procurements(), []);
+  const { data: items, loading, error, refetch } = useQuery(() => api.procurements(), [], { fresh: true });
 
   function logout() {
     api.logout();

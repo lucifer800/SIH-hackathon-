@@ -5,10 +5,10 @@ import { fmtNumber } from "../i18n/format";
 import { translateCentreName } from "../i18n/centreNames";
 import { useQuery } from "../hooks/useQuery";
 import { useToast } from "../ui";
+import { computeTransport, TRANSPORT_RATE_PER_KM_PER_QTL } from "../domain/transport";
 
 export const CROP_KEYS = ["Wheat", "Paddy", "Maize"] as const;
 export const CROP_I18N: Record<string, string> = { Wheat: "cropWheat", Paddy: "cropPaddy", Maize: "cropMaize" };
-const TRANSPORT_RATE_PER_KM_PER_QTL = 4; // ₹ — standard Punjab tractor-trolley rate
 
 /** Shared crop-chip row — one crop selection drives all three Market sub-tabs. */
 export function CropChips({ crop, onCrop, font }: { crop: string; onCrop: (c: string) => void; font: string }) {
@@ -89,7 +89,7 @@ export function AlertsPanel({ crop }: { crop: string }) {
   const toast = useToast();
   const [alertTarget, setAlertTarget] = useState("");
   const [alertSaving, setAlertSaving] = useState(false);
-  const { data: alerts, refetch: refetchAlerts } = useQuery(() => api.getAlerts(), []);
+  const { data: alerts, refetch: refetchAlerts } = useQuery(() => api.getAlerts(), [], { fresh: true });
   const activeAlert = alerts?.find((a) => a.crop === crop);
 
   return (
@@ -149,11 +149,7 @@ function TransportSlider({ mandiPrice, distance, onDistance, trolleyQtl, onTroll
   trolleyQtl: number; onTrolleyQtl: (v: number) => void; font: string;
 }) {
   const { t } = useI18n();
-  const costPerQtl = distance * TRANSPORT_RATE_PER_KM_PER_QTL;
-  const netPrice = Math.max(0, mandiPrice - costPerQtl);
-  const totalCost = costPerQtl * trolleyQtl;
-  const saving = mandiPrice - netPrice;
-  const pct = mandiPrice > 0 ? Math.round((saving / mandiPrice) * 100) : 0;
+  const { costPerQtl, netPrice, totalCost, pctOfMandiPrice: pct } = computeTransport(mandiPrice, distance, trolleyQtl);
 
   return (
     <div style={{ padding: "20px 18px 18px", borderRadius: 22, background: "var(--green-ink)" }}>
