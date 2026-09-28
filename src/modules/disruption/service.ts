@@ -26,7 +26,8 @@ const fmtWindow = (s: Date, e: Date) => {
  * reply-by-digit offer. Nothing is auto-confirmed — the farmer replies "1".
  */
 export async function declareEvent(input: {
-  operatorId: string;
+  /** null means system-triggered (e.g. the weather check), not a human operator. */
+  operatorId: string | null;
   centreId: string;
   date: string;
   kind: "rain" | "godown_full" | "bag_shortage" | "weighbridge_down" | "holiday";
