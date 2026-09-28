@@ -80,6 +80,7 @@ export function Login() {
                 <input
                   inputMode="numeric" autoFocus value={digits}
                   onChange={(e) => setMobile(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !busy && isValidMobile) sendCode(); }}
                   placeholder={t("mobilePlaceholder")}
                   aria-label={t("enterMobile")}
                   lang={lang}
