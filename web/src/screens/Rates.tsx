@@ -29,8 +29,6 @@ export function CropChips({ crop, onCrop, font }: { crop: string; onCrop: (c: st
 export function PricesPanel({ crop }: { crop: string }) {
   const { t, lang, font } = useI18n();
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
-  const [alertTarget, setAlertTarget] = useState("");
-  const [alertSaving, setAlertSaving] = useState(false);
   const { data: r, loading, error, refetch } = useQuery(() => api.rates(crop), [crop]);
   const displayedPrice = r && selectedDayIndex !== null && r.trend[selectedDayIndex] ? r.trend[selectedDayIndex].value : r?.today;
 
