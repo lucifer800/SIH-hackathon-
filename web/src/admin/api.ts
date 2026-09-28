@@ -16,9 +16,10 @@ const del = (k: string) => { try { localStorage.removeItem(k); } catch { /* igno
 
 let lastRequestId = "";
 
-async function raw(path: string, opts: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<Response> {
+async function raw(path: string, opts: { method?: string; body?: unknown; auth?: boolean; idem?: string } = {}): Promise<Response> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (opts.auth !== false) { const tok = get(ACCESS); if (tok) headers.Authorization = `Bearer ${tok}`; }
+  if (opts.idem) headers["Idempotency-Key"] = opts.idem;
   return fetch(BASE + path, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
 }
 
@@ -74,6 +75,16 @@ export const adminApi = {
     try {
       const r = await req<any>("/op/serve/next", { method: "POST", body: { centreId, lane } });
       return { ok: true, message: `Served token ${r.seq ?? "next"}` };
+    } catch (e: any) {
+      return { ok: false, message: e.message };
+    }
+  },
+
+  /* ---- Gate check-in ---- */
+  async checkin(input: { bookingRef: string; gateOtp: string; vehicleNo: string; lane?: number }) {
+    try {
+      const r = await req<{ tokenNumber: string }>("/op/checkin", { method: "POST", body: input, idem: crypto.randomUUID() });
+      return { ok: true, message: `Checked in — token ${r.tokenNumber} for ${input.vehicleNo}.` };
     } catch (e: any) {
       return { ok: false, message: e.message };
     }

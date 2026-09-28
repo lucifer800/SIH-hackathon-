@@ -4,7 +4,7 @@ import { useI18n } from "../i18n/context";
 import { fmtNumber } from "../i18n/format";
 import type { Lang } from "../i18n/strings";
 import { useQuery } from "../hooks/useQuery";
-import { StatusBar, ScreenBody, TabBar, useToast } from "../ui";
+import { useToast } from "../ui";
 
 const CROPS = ["Wheat", "Paddy", "Maize"] as const;
 const CROP_I18N: Record<string, string> = { Wheat: "cropWheat", Paddy: "cropPaddy", Maize: "cropMaize" };
@@ -15,7 +15,8 @@ type Listing = {
   farmerName: string | null; farmerMobile: string;
 };
 
-export function Listings() {
+/** Board sub-tab of the Market screen — browse and post produce listings. */
+export function BoardPanel() {
   const { t, lang, font } = useI18n();
   const toast = useToast();
   const [filterCrop, setFilterCrop] = useState<string>("all");
@@ -29,19 +30,15 @@ export function Listings() {
   const listings: Listing[] = data ?? [];
 
   return (
-    <>
-      <StatusBar right={t("listingsTitle")} />
-      <ScreenBody style={{ display: "flex", flexDirection: "column" }}>
-        <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6, marginBottom: 16 }}>
-            <h2 className="h-display" style={{ margin: 0, fontSize: 28 }}>{t("listingsTitle")}</h2>
-            <button type="button" onClick={() => setShowForm((v) => !v)}
-              style={{ height: 40, padding: "0 18px", borderRadius: 999, border: 0, background: showForm ? "var(--terra)" : "var(--green-ink)", color: "#fff", fontSize: 13.5, fontWeight: 800, fontFamily: font }}>
-              {showForm ? t("cancel") : `+ ${t("postListing")}`}
-            </button>
-          </div>
+    <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 14, marginBottom: 16 }}>
+        <button type="button" onClick={() => setShowForm((v) => !v)}
+          style={{ height: 40, padding: "0 18px", borderRadius: 999, border: 0, background: showForm ? "var(--terra)" : "var(--green-ink)", color: "#fff", fontSize: 13.5, fontWeight: 800, fontFamily: font }}>
+          {showForm ? t("cancel") : `+ ${t("postListing")}`}
+        </button>
+      </div>
 
-          {showForm && <PostForm t={t} font={font} lang={lang} onPosted={() => { setShowForm(false); refetch(); toast(t("listingPosted")); }} />}
+      {showForm && <PostForm t={t} font={font} lang={lang} onPosted={() => { setShowForm(false); refetch(); toast(t("listingPosted")); }} />}
 
           {/* Crop filter chips */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
@@ -73,10 +70,7 @@ export function Listings() {
               ))}
             </div>
           )}
-        </div>
-      </ScreenBody>
-      <TabBar />
-    </>
+    </div>
   );
 }
 

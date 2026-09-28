@@ -3,7 +3,7 @@
  * Mobile + OTP sign-in like the rest of KisanQ, then one page per entity group
  * with the management actions wired to the real backend via ./api.ts.
  */
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { adminStore, mutate, overview, type EventKind } from "./data";
 import { adminApi } from "./api";
 import { useAdmin, Card, Stat, Badge, Table, Btn, BtnRow, money, type Col } from "./ui";
@@ -55,7 +55,7 @@ function useAction() {
 /* ---------------------------------------------------------------- sections */
 
 const SECTIONS = [
-  "Overview", "Farmers", "Centres", "Bookings", "Live queue",
+  "Overview", "Farmers", "Centres", "Bookings", "Check-in", "Live queue",
   "Lots", "Payments", "Messages", "Rates", "Disruptions", "Grievances", "Audit log",
 ] as const;
 type Section = (typeof SECTIONS)[number];
@@ -197,6 +197,7 @@ function Body({ section, onJump }: { section: Section; onJump: (s: Section) => v
     case "Farmers": return <Farmers />;
     case "Centres": return <Centres />;
     case "Bookings": return <Bookings />;
+    case "Check-in": return <CheckIn />;
     case "Live queue": return <LiveQueue />;
     case "Lots": return <Lots />;
     case "Payments": return <Payments />;
@@ -235,7 +236,45 @@ function Overview({ onJump }: { onJump: (s: Section) => void }) {
           {o.paymentsHeld === 0 && o.openGrievances === 0 && <span className="ad-sub">Nothing urgent. All centres and payments are healthy.</span>}
         </BtnRow>
       </Card>
+      <Card title="Arrivals vs. capacity" action={<span className="ad-sub">Booked qtl today, by centre</span>}>
+        <ArrivalsChart centres={s.centres} />
+      </Card>
     </>
+  );
+}
+
+/** Plain SVG bar chart — booked vs. capacity qtl per centre. No charting
+ *  library: a handful of <rect>s reads clearly at demo distance and needs
+ *  no bundle weight for three-to-a-dozen centres. */
+function ArrivalsChart({ centres }: { centres: { id: string; name: string; bookedQtl: number; capacityQtl: number; dayStatus: string }[] }) {
+  if (centres.length === 0) return <p className="ad-empty">No centres yet.</p>;
+  const W = 720, barH = 26, gap = 20, labelW = 190, trackW = W - labelW - 60;
+  const maxQtl = Math.max(...centres.map((c) => c.capacityQtl), 1);
+  const H = centres.length * (barH + gap);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Booked quintals vs. capacity, by centre">
+      {centres.map((c, i) => {
+        const y = i * (barH + gap);
+        const capW = (c.capacityQtl / maxQtl) * trackW;
+        const bookedW = (c.bookedQtl / maxQtl) * trackW;
+        const pct = c.capacityQtl ? Math.round((c.bookedQtl / c.capacityQtl) * 100) : 0;
+        const fill = pct > 90 ? "var(--terra)" : pct > 70 ? "var(--amber-text)" : "var(--leaf)";
+        return (
+          <g key={c.id}>
+            <text x={0} y={y + barH / 2 + 4.5} fontSize="12.5" fontWeight="700" fill="var(--green-ink)">
+              {c.name.replace(" Procurement Centre", "")}
+              {c.dayStatus !== "open" && <tspan fill="var(--muted-2)" fontWeight="600"> · {c.dayStatus}</tspan>}
+            </text>
+            <rect x={labelW} y={y} width={trackW} height={barH} rx={7} fill="var(--paper-3)" />
+            <rect x={labelW} y={y} width={Math.max(bookedW, 2)} height={barH} rx={7} fill={fill} />
+            <text x={labelW + trackW + 10} y={y + barH / 2 + 4.5} fontSize="12.5" fontWeight="800" fill="var(--muted)">
+              {c.bookedQtl}/{c.capacityQtl} qtl ({pct}%)
+            </text>
+            <line x1={labelW + capW} y1={y - 4} x2={labelW + capW} y2={y + barH + 4} stroke="var(--line-strong)" strokeWidth={1.5} strokeDasharray="3 3" />
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -323,6 +362,120 @@ function Bookings() {
 }
 
 /* -------- Live queue -------- */
+/** Reads a QR code from the device camera via the native BarcodeDetector API
+ *  (Chrome/Edge/Android WebView — the realistic operator device). Falls back
+ *  to `unsupported` so the manual fields below always still work. */
+function useQrScanner(onDetect: (text: string) => void) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number>();
+  const [scanning, setScanning] = useState(false);
+  const [unsupported, setUnsupported] = useState(false);
+
+  const stop = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
+    streamRef.current = null;
+    setScanning(false);
+  }, []);
+
+  const start = useCallback(async () => {
+    if (!("BarcodeDetector" in window)) { setUnsupported(true); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setScanning(true);
+      const detector = new (window as any).BarcodeDetector({ formats: ["qr_code"] });
+      const tick = async () => {
+        if (!videoRef.current) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes.length > 0) { onDetect(codes[0].rawValue); stop(); return; }
+        } catch { /* frame not decodable yet — keep trying */ }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch {
+      setUnsupported(true);
+    }
+  }, [onDetect, stop]);
+
+  useEffect(() => stop, [stop]);
+
+  return { videoRef, scanning, unsupported, start, stop };
+}
+
+/* -------- Check-in -------- */
+function CheckIn() {
+  const toast = useToast();
+  const [bookingRef, setBookingRef] = useState("");
+  const [gateOtp, setGateOtp] = useState("");
+  const [vehicleNo, setVehicleNo] = useState("");
+  const [lane, setLane] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const onDetect = useCallback((text: string) => {
+    const [ref, otp] = text.split("|");
+    if (ref && /^\d{4}$/.test(otp ?? "")) { setBookingRef(ref); setGateOtp(otp); toast("Scanned — confirm the vehicle number and check in."); }
+    else toast("That QR isn't a KisanQ gate pass.");
+  }, [toast]);
+  const scanner = useQrScanner(onDetect);
+
+  async function submit() {
+    if (!bookingRef.trim() || !/^\d{4}$/.test(gateOtp) || vehicleNo.trim().length < 3) {
+      toast("Enter the booking ref, the 4-digit gate OTP, and the vehicle number.");
+      return;
+    }
+    setBusy(true);
+    const res = await adminApi.checkin({ bookingRef: bookingRef.trim(), gateOtp, vehicleNo: vehicleNo.trim(), lane: lane ? Number(lane) : undefined });
+    setBusy(false);
+    toast(res.message);
+    if (res.ok) { setBookingRef(""); setGateOtp(""); setVehicleNo(""); setLane(""); }
+  }
+
+  return (
+    <>
+      <Head title="Check-in" sub="Scan the farmer's gate-pass QR, or enter the booking ref and gate OTP by hand." />
+      <Card title="Scan gate pass">
+        {scanner.unsupported ? (
+          <p className="ad-sub">Camera scanning isn't supported in this browser — use the fields below.</p>
+        ) : scanner.scanning ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <video ref={scanner.videoRef} muted playsInline style={{ width: "100%", maxWidth: 360, borderRadius: 16, background: "#000" }} />
+            <BtnRow><Btn onClick={scanner.stop}>Stop scanning</Btn></BtnRow>
+          </div>
+        ) : (
+          <Btn kind="primary" onClick={scanner.start}>📷 Scan QR</Btn>
+        )}
+      </Card>
+      <Card title="Gate details">
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div className="ad-field" style={{ margin: 0, minWidth: 200 }}>
+            <label>Booking ref</label>
+            <input className="ad-input" value={bookingRef} onChange={(e) => setBookingRef(e.target.value)} placeholder="KS-26-…" />
+          </div>
+          <div className="ad-field" style={{ margin: 0, width: 110 }}>
+            <label>Gate OTP</label>
+            <input className="ad-input" value={gateOtp} onChange={(e) => setGateOtp(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="4417" inputMode="numeric" />
+          </div>
+          <div className="ad-field" style={{ margin: 0, minWidth: 160 }}>
+            <label>Vehicle no.</label>
+            <input className="ad-input" value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} placeholder="PB10 AB 1234" />
+          </div>
+          <div className="ad-field" style={{ margin: 0, width: 90 }}>
+            <label>Lane</label>
+            <input className="ad-input" value={lane} onChange={(e) => setLane(e.target.value.replace(/\D/g, ""))} placeholder="1" inputMode="numeric" />
+          </div>
+          <Btn kind="primary" disabled={busy} onClick={submit}>{busy ? "Checking in…" : "Check in"}</Btn>
+        </div>
+      </Card>
+    </>
+  );
+}
+
 function LiveQueue() {
   const s = useAdmin();
   const act = useAction();

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useI18n } from "../i18n/context";
@@ -6,12 +7,14 @@ import { fmtNumber, fmtTime } from "../i18n/format";
 import { translateCentreName } from "../i18n/centreNames";
 import { useQuery } from "../hooks/useQuery";
 import { StatusBar, ScreenBody, TabBar, LangChips, useToast, money } from "../ui";
+import { GatePassOverlay } from "../components/GatePassQR";
 
 export function Home() {
   const { t, lang, font } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
   const { data: d, loading, error, refetch } = useQuery(() => api.dashboard(lang), [lang]);
+  const [showPass, setShowPass] = useState(false);
 
   async function refresh() {
     const q = await api.advanceQueue();
@@ -57,7 +60,7 @@ export function Home() {
                   {translateCentreName(a.centre, lang)} · {t("crop" + a.crop)} · {fmtNumber(a.qtl, lang)} {t("qtlUnit")}
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                  <button type="button" onClick={() => toast(`${t("gateOtp")} ${a.gateOtp} — ${t("showAtGate")}`)} style={{ flex: 1, minHeight: 56, borderRadius: 999, background: "var(--marigold)", color: "var(--amber-text-3)", fontSize: 15, fontWeight: 800 }}>{t("gateOtp")} {a.gateOtp}</button>
+                  <button type="button" onClick={() => setShowPass(true)} style={{ flex: 1, minHeight: 56, borderRadius: 999, background: "var(--marigold)", color: "var(--amber-text-3)", fontSize: 15, fontWeight: 800 }}>{t("gateOtp")} {a.gateOtp}</button>
                   <button type="button" onClick={() => nav("/queue")} style={{ flex: 1, minHeight: 56, border: "2px solid rgba(255,248,236,.5)", borderRadius: 999, background: "transparent", color: "var(--on-dark)", fontSize: 15, fontWeight: 700 }}>{t("viewQueue")}</button>
                 </div>
               </div>
@@ -68,25 +71,9 @@ export function Home() {
               </button>
             )}
 
-            {/* stat cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-              <button type="button" onClick={() => nav("/records")} className="card" style={{ padding: 18, textAlign: "left" }}>
-                <div className="eyebrow">{t("payment")}</div>
-                <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{money.format(d.payment?.amount ?? d.procurementValue)}</div>
-                <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: d.payment?.paymentStatus === "failed" ? "var(--terra)" : "var(--leaf)", fontFamily: font }}>
-                  {d.payment ? paymentLabel(d.payment, lang, t) : t("creditedOn")}
-                </div>
-              </button>
-              <div className="card" style={{ padding: 18 }}>
-                <div className="eyebrow">{t("entitlement")}</div>
-                <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{fmtNumber(remaining, lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</div>
-                <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{t("quintalsLeft")}</div>
-              </div>
-            </div>
-
-            {/* queue strip */}
+            {/* queue strip — grouped with "today" (the appointment card), not the account stats below */}
             {q ? (
-              <div style={{ marginTop: 14, padding: "18px 20px", borderRadius: 26, background: "var(--amber-soft)" }}>
+              <div style={{ marginTop: 12, padding: "18px 20px", borderRadius: 26, background: "var(--amber-soft)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div>
                     <div className="eyebrow" style={{ color: "var(--amber-text)" }}>{t("liveQueue")}</div>
@@ -97,20 +84,37 @@ export function Home() {
               </div>
             ) : null}
 
-            {/* voice CTA */}
-            <button type="button" onClick={() => nav("/voice")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", minHeight: 62, marginTop: 14, border: "2.5px solid var(--leaf)", borderRadius: 999, background: "rgba(87,120,63,.1)", color: "var(--leaf-text)", fontSize: 16, fontWeight: 800, fontFamily: font }}>
-              <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--leaf)", animation: "sk-ring 2s ease-out infinite" }} />
-              {t("askByVoice")}
-            </button>
+            {/* secondary section — everything that isn't "what's happening today" */}
+            <div style={{ marginTop: 28, paddingTop: 4, borderTop: "1.5px solid rgba(30,59,35,.08)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+                <button type="button" onClick={() => nav("/records")} className="card" style={{ padding: 18, textAlign: "left" }}>
+                  <div className="eyebrow">{t("payment")}</div>
+                  <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{money.format(d.payment?.amount ?? d.procurementValue)}</div>
+                  <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: d.payment?.paymentStatus === "failed" ? "var(--terra)" : "var(--leaf)", fontFamily: font }}>
+                    {d.payment ? paymentLabel(d.payment, lang, t) : t("creditedOn")}
+                  </div>
+                </button>
+                <div className="card" style={{ padding: 18 }}>
+                  <div className="eyebrow">{t("entitlement")}</div>
+                  <div className="h-display" style={{ marginTop: 8, fontWeight: 700, fontSize: 24 }}>{fmtNumber(remaining, lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</div>
+                  <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: "var(--muted-2)", fontFamily: font }}>{t("quintalsLeft")}</div>
+                </div>
+              </div>
 
-            {/* logout */}
-            <button type="button" onClick={() => { api.logout(); nav("/login", { replace: true }); }} style={{ marginTop: 16, fontSize: 14, fontWeight: 700, color: "var(--terra)", textAlign: "center", width: "100%", padding: "10px 0" }}>
-              {t("logout")}
-            </button>
+              <button type="button" onClick={() => nav("/voice")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", minHeight: 62, marginTop: 14, border: "2.5px solid var(--leaf)", borderRadius: 999, background: "rgba(87,120,63,.1)", color: "var(--leaf-text)", fontSize: 16, fontWeight: 800, fontFamily: font }}>
+                <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--leaf)", animation: "sk-ring 2s ease-out infinite" }} />
+                {t("askByVoice")}
+              </button>
+
+              <button type="button" onClick={() => { api.logout(); nav("/login", { replace: true }); }} style={{ marginTop: 16, fontSize: 14, fontWeight: 700, color: "var(--terra)", textAlign: "center", width: "100%", padding: "10px 0" }}>
+                {t("logout")}
+              </button>
+            </div>
           </div>
         )}
       </ScreenBody>
       <TabBar unread={d?.unreadNotifications ?? 0} />
+      {showPass && a && <GatePassOverlay bookingRef={a.ref} gateOtp={a.gateOtp} onClose={() => setShowPass(false)} t={t} font={font} />}
     </>
   );
 }
